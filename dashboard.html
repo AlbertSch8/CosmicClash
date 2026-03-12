@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CosmicClash — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Syne:wght@300;400;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --void: #03020a; --accent: #7b2fff; --glow: #a855f7;
+      --star: #e8d5ff; --text: #c4b5d4; --success: #00e5a0;
+    }
+    body {
+      background: var(--void); min-height: 100vh;
+      font-family: 'Syne', sans-serif; color: var(--text);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 24px;
+    }
+    .space-bg { position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse at 20% 50%, #1a0a2e 0%, #03020a 60%); }
+    .card {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 520px;
+      background: rgba(15, 8, 30, 0.85);
+      border: 1px solid rgba(123, 47, 255, 0.3);
+      border-radius: 20px; padding: 40px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 0 60px rgba(123, 47, 255, 0.15);
+    }
+    h1 { font-family: 'Orbitron', sans-serif; font-size: 18px;
+      color: var(--star); letter-spacing: 0.15em; margin-bottom: 24px; }
+    .stat { display: flex; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .stat:last-child { border-bottom: none; }
+    .stat-label { font-size: 11px; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--glow); }
+    .stat-value { font-weight: 600; color: var(--star); }
+    .btn-logout {
+      margin-top: 28px; width: 100%; padding: 13px;
+      background: transparent; border: 1px solid rgba(255,59,110,0.4);
+      border-radius: 10px; color: #ff6b8a;
+      font-family: 'Orbitron', sans-serif; font-size: 11px;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-logout:hover { background: rgba(255,59,110,0.1); }
+    #loading { text-align: center; color: var(--glow); font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="space-bg"></div>
+<div class="card" id="content">
+  <div id="loading">Načítám data pilota…</div>
+</div>
+
+<script src="/__/firebase/12.10.0/firebase-app-compat.js"></script>
+<script src="/__/firebase/12.10.0/firebase-auth-compat.js"></script>
+<script src="/__/firebase/12.10.0/firebase-firestore-compat.js"></script>
+<script src="/__/firebase/init.js"></script>
+<script>
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) { window.location.href = '/index.html'; return; }
+    const snap = await firebase.firestore().doc(`aliens/${user.uid}`).get();
+    if (!snap.exists) { window.location.href = '/index.html'; return; }
+    const a = snap.data();
+    document.getElementById('content').innerHTML = `
+      <h1>🪐 Velitel ${a.name}</h1>
+      <div class="stat"><span class="stat-label">Level</span><span class="stat-value">${a.level}</span></div>
+      <div class="stat"><span class="stat-label">XP</span><span class="stat-value">${a.xp}</span></div>
+      <div class="stat"><span class="stat-label">HP</span><span class="stat-value">${a.hp}</span></div>
+      <div class="stat"><span class="stat-label">DMG</span><span class="stat-value">${a.dmg}</span></div>
+      <div class="stat"><span class="stat-label">Stamina</span><span class="stat-value">${a.stamina}</span></div>
+      <div class="stat"><span class="stat-label">StarCoins</span><span class="stat-value">${a.starCoins} ✦</span></div>
+      <button class="btn-logout" onclick="firebase.auth().signOut().then(()=>location.href='/index.html')">
+        Odhlásit se
+      </button>
+    `;
+  });
+</script>
+</body>
+</html>
