@@ -23,6 +23,10 @@ function applyLevelUp(alien) {
     return updatedAlien;
 }
 
+function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 export async function startTraining(userId) {
     const alienRef = doc(db, "aliens", userId);
     const alienSnap = await getDoc(alienRef);
@@ -57,6 +61,7 @@ export async function startTraining(userId) {
     });
 
     return {
+        type: "training",
         message: "Trénink dokončen. Získal jsi 25 XP a 10 StarCoins. Spotřeboval jsi 10 staminy.",
         alien: updatedAlien
     };
@@ -77,11 +82,38 @@ export async function startBattle(userId) {
         throw new Error("Nemáš dost staminy na souboj.");
     }
 
-    const enemyHp = Math.floor(Math.random() * 41) + 60;
-    const enemyDmg = Math.floor(Math.random() * 6) + 6;
+    const enemy = {
+        name: ["Void Beast", "Nebula Drone", "Star Hunter", "Dark Raider"][randomInt(0, 3)],
+        hp: randomInt(70, 120),
+        dmg: randomInt(7, 14),
+        level: randomInt(Math.max(1, alien.level - 1), alien.level + 2)
+    };
 
-    const playerPower = alien.hp + alien.dmg * 5 + alien.level * 8;
-    const enemyPower = enemyHp + enemyDmg * 5;
+    let playerHp = alien.hp;
+    let enemyHp = enemy.hp;
+    const battleLog = [];
+
+    for (let round = 1; round <= 5; round++) {
+        if (playerHp <= 0 || enemyHp <= 0) break;
+
+        const playerHit = alien.dmg + randomInt(0, 6) + alien.level;
+        enemyHp = Math.max(0, enemyHp - playerHit);
+        battleLog.push(`Kolo ${round}: zasáhl jsi nepřítele za ${playerHit} dmg.`);
+
+        if (enemyHp <= 0) {
+            battleLog.push(`${enemy.name} byl poražen.`);
+            break;
+        }
+
+        const enemyHit = enemy.dmg + randomInt(0, 5);
+        playerHp = Math.max(0, playerHp - enemyHit);
+        battleLog.push(`Kolo ${round}: nepřítel tě zasáhl za ${enemyHit} dmg.`);
+
+        if (playerHp <= 0) {
+            battleLog.push(`Tvoje loď byla v kole ${round} přetížena.`);
+            break;
+        }
+    }
 
     let updatedAlien = {
         ...alien,
@@ -90,13 +122,13 @@ export async function startBattle(userId) {
 
     let message = "";
 
-    if (playerPower >= enemyPower) {
+    if (enemyHp <= 0 || playerHp > enemyHp) {
         updatedAlien.xp += 40;
         updatedAlien.starCoins += 20;
-        message = "Vyhrál jsi souboj. Získal jsi 40 XP a 20 StarCoins. Spotřeboval jsi 15 staminy.";
+        message = `Vyhrál jsi souboj proti ${enemy.name}. Získal jsi 40 XP a 20 StarCoins.`;
     } else {
         updatedAlien.starCoins = Math.max(0, updatedAlien.starCoins - 10);
-        message = "Souboj jsi prohrál. Ztratil jsi 10 StarCoins a spotřeboval jsi 15 staminy.";
+        message = `Souboj proti ${enemy.name} jsi prohrál. Ztratil jsi 10 StarCoins.`;
     }
 
     updatedAlien = applyLevelUp(updatedAlien);
@@ -111,8 +143,11 @@ export async function startBattle(userId) {
     });
 
     return {
-        message,
-        alien: updatedAlien
+        type: "battle",
+        message: `${message} Spotřeboval jsi 15 staminy.`,
+        alien: updatedAlien,
+        enemy,
+        battleLog
     };
 }
 
@@ -137,10 +172,77 @@ export async function restAlien(userId) {
     });
 
     return {
+        type: "rest",
         message: `Odpočinek dokončen. Obnovil jsi si staminu na ${newStamina}.`,
         alien: {
             ...alien,
             stamina: newStamina
         }
+    };
+}
+
+export async function buyHpUpgrade(userId) {
+    const alienRef = doc(db, "aliens", userId);
+    const alienSnap = await getDoc(alienRef);
+
+    if (!alienSnap.exists()) {
+        throw new Error("Hráč nebyl nalezen.");
+    }
+
+    const alien = alienSnap.data();
+    const cost = 20;
+
+    if (alien.starCoins < cost) {
+        throw new Error("Nemáš dost StarCoins na vylepšení HP.");
+    }
+
+    const updatedAlien = {
+        ...alien,
+        starCoins: alien.starCoins - cost,
+        hp: alien.hp + 15
+    };
+
+    await updateDoc(alienRef, {
+        starCoins: updatedAlien.starCoins,
+        hp: updatedAlien.hp
+    });
+
+    return {
+        type: "shop",
+        message: "Koupil jsi vylepšení HP. +15 HP.",
+        alien: updatedAlien
+    };
+}
+
+export async function buyDmgUpgrade(userId) {
+    const alienRef = doc(db, "aliens", userId);
+    const alienSnap = await getDoc(alienRef);
+
+    if (!alienSnap.exists()) {
+        throw new Error("Hráč nebyl nalezen.");
+    }
+
+    const alien = alienSnap.data();
+    const cost = 25;
+
+    if (alien.starCoins < cost) {
+        throw new Error("Nemáš dost StarCoins na vylepšení DMG.");
+    }
+
+    const updatedAlien = {
+        ...alien,
+        starCoins: alien.starCoins - cost,
+        dmg: alien.dmg + 3
+    };
+
+    await updateDoc(alienRef, {
+        starCoins: updatedAlien.starCoins,
+        dmg: updatedAlien.dmg
+    });
+
+    return {
+        type: "shop",
+        message: "Koupil jsi vylepšení DMG. +3 DMG.",
+        alien: updatedAlien
     };
 }

@@ -103,7 +103,7 @@ async function handleRegister() {
             dmg: 10,
             stamina: 100,
             starCoins: 50,
-            createdAt: serverTimestamp()
+            createdAt: new Date().toISOString()
         });
 
         showStatus("register-status", "success", "✓ Účet vytvořen! Přesměrovávám...");
