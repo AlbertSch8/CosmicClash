@@ -26,41 +26,60 @@ function renderDashboard(a, user, actionText = "") {
     const staminaPercent = Math.min((a.stamina / 100) * 100, 100);
 
     content.innerHTML = `
-    <h1>🪐 Velitel ${a.name}</h1>
+    <div class="dashboard-header">
+      <h1>🪐 Velitel ${a.name}</h1>
+      <p class="subtitle">Připraven na další vesmírný střet</p>
+    </div>
 
-    <div class="stat"><span class="stat-label">Level</span><span class="stat-value">${a.level}</span></div>
-    <div class="stat"><span class="stat-label">HP</span><span class="stat-value">${a.hp}</span></div>
-    <div class="stat"><span class="stat-label">DMG</span><span class="stat-value">${a.dmg}</span></div>
-    <div class="stat"><span class="stat-label">StarCoins</span><span class="stat-value">${a.starCoins} ✦</span></div>
+    <div class="section">
+      <h2 class="section-title">Hráč</h2>
+      <div class="stat"><span class="stat-label">Level</span><span class="stat-value">${a.level}</span></div>
+      <div class="stat"><span class="stat-label">StarCoins</span><span class="stat-value">${a.starCoins} ✦</span></div>
+    </div>
 
-    <div class="bar-block">
-      <div class="bar-header">
-        <span class="stat-label">XP</span>
-        <span class="stat-value">${a.xp} / ${requiredXp}</span>
+    <div class="section">
+      <h2 class="section-title">Statistiky</h2>
+      <div class="stat"><span class="stat-label">HP</span><span class="stat-value">${a.hp}</span></div>
+      <div class="stat"><span class="stat-label">DMG</span><span class="stat-value">${a.dmg}</span></div>
+      <div class="stat"><span class="stat-label">Stamina</span><span class="stat-value">${a.stamina} / 100</span></div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">Postup</h2>
+
+      <div class="bar-block">
+        <div class="bar-header">
+          <span class="stat-label">XP</span>
+          <span class="stat-value">${a.xp} / ${requiredXp}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill xp-fill" style="width: ${xpPercent}%"></div>
+        </div>
       </div>
-      <div class="progress-bar">
-        <div class="progress-fill xp-fill" style="width: ${xpPercent}%"></div>
+
+      <div class="bar-block">
+        <div class="bar-header">
+          <span class="stat-label">Energie</span>
+          <span class="stat-value">${a.stamina} / 100</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill stamina-fill" style="width: ${staminaPercent}%"></div>
+        </div>
       </div>
     </div>
 
-    <div class="bar-block">
-      <div class="bar-header">
-        <span class="stat-label">Stamina</span>
-        <span class="stat-value">${a.stamina} / 100</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill stamina-fill" style="width: ${staminaPercent}%"></div>
-      </div>
-    </div>
+    <div class="section">
+      <h2 class="section-title">Akce</h2>
 
-    <div id="action-message" style="margin: 16px 0; text-align: center; color: #d6ddff; min-height: 24px;">
-      ${actionText}
-    </div>
+      <div id="action-message" class="action-message">
+        ${actionText}
+      </div>
 
-    <button class="btn-action" id="training-btn">Trénink</button>
-    <button class="btn-action" id="battle-btn">Souboj</button>
-    <button class="btn-action" id="rest-btn">Odpočinek</button>
-    <button class="btn-logout" id="logout-btn">Odhlásit se</button>
+      <button class="btn-action" id="training-btn">Trénink</button>
+      <button class="btn-action" id="battle-btn">Souboj</button>
+      <button class="btn-action" id="rest-btn">Odpočinek</button>
+      <button class="btn-logout" id="logout-btn">Odhlásit se</button>
+    </div>
   `;
 
     const trainingBtn = document.getElementById("training-btn");
@@ -124,12 +143,18 @@ function renderDashboard(a, user, actionText = "") {
 
 function renderError(message) {
     content.innerHTML = `
-    <h1>Chyba</h1>
-    <div class="stat">
-      <span class="stat-label">Info</span>
-      <span class="stat-value">${message}</span>
+    <div class="dashboard-header">
+      <h1>Chyba</h1>
+      <p class="subtitle">Nepodařilo se načíst dashboard</p>
     </div>
-    <button class="btn-logout" id="back-btn">Zpět na přihlášení</button>
+
+    <div class="section">
+      <div class="stat">
+        <span class="stat-label">Info</span>
+        <span class="stat-value">${message}</span>
+      </div>
+      <button class="btn-logout" id="back-btn">Zpět na přihlášení</button>
+    </div>
   `;
 
     const backBtn = document.getElementById("back-btn");
