@@ -112,7 +112,7 @@ async function handleRegister() {
         }, 800);
     } catch (e) {
         console.error("Register error:", e);
-        showStatus("register-status", "error", friendlyError(e.code));
+        showStatus("register-status", "error", `${friendlyError(e.code)} (${e.code})`);
         setLoading("btn-register", false);
     }
 }
