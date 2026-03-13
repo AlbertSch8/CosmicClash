@@ -5,6 +5,10 @@ import { startTraining, startBattle, restAlien } from "./game.js";
 
 const content = document.getElementById("content");
 
+function getRequiredXp(level) {
+    return level * 100;
+}
+
 async function loadAlien(userId) {
     const alienRef = doc(db, "aliens", userId);
     const alienSnap = await getDoc(alienRef);
@@ -17,15 +21,37 @@ async function loadAlien(userId) {
 }
 
 function renderDashboard(a, user, actionText = "") {
+    const requiredXp = getRequiredXp(a.level);
+    const xpPercent = Math.min((a.xp / requiredXp) * 100, 100);
+    const staminaPercent = Math.min((a.stamina / 100) * 100, 100);
+
     content.innerHTML = `
     <h1>🪐 Velitel ${a.name}</h1>
 
     <div class="stat"><span class="stat-label">Level</span><span class="stat-value">${a.level}</span></div>
-    <div class="stat"><span class="stat-label">XP</span><span class="stat-value">${a.xp}</span></div>
     <div class="stat"><span class="stat-label">HP</span><span class="stat-value">${a.hp}</span></div>
     <div class="stat"><span class="stat-label">DMG</span><span class="stat-value">${a.dmg}</span></div>
-    <div class="stat"><span class="stat-label">Stamina</span><span class="stat-value">${a.stamina} / 100</span></div>
     <div class="stat"><span class="stat-label">StarCoins</span><span class="stat-value">${a.starCoins} ✦</span></div>
+
+    <div class="bar-block">
+      <div class="bar-header">
+        <span class="stat-label">XP</span>
+        <span class="stat-value">${a.xp} / ${requiredXp}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill xp-fill" style="width: ${xpPercent}%"></div>
+      </div>
+    </div>
+
+    <div class="bar-block">
+      <div class="bar-header">
+        <span class="stat-label">Stamina</span>
+        <span class="stat-value">${a.stamina} / 100</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill stamina-fill" style="width: ${staminaPercent}%"></div>
+      </div>
+    </div>
 
     <div id="action-message" style="margin: 16px 0; text-align: center; color: #d6ddff; min-height: 24px;">
       ${actionText}
