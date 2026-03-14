@@ -6,78 +6,66 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ── Veřejné profily uživatelů ────────────────────────────────────────
-    // Kolekce `users` obsahuje jen metadata (uid, email, createdAt).
-    // Hráč smí zapsat/přečíst pouze svůj vlastní dokument.
-    // Podmínka userId == uid chrání před zápisem pod cizím UID.
     match /users/{userId} {
-      allow read:   if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+
       allow create: if request.auth != null
                     && request.auth.uid == userId
                     && request.resource.data.userId == request.auth.uid;
+
       allow update: if request.auth != null && request.auth.uid == userId;
     }
 
     // ── Herní profily ufonů ──────────────────────────────────────────────
-    // Kolekce `aliens` je herní jádro (HP, DMG, energie, měna, …).
-    //
-    // create: Nový hráč může zapsat svůj profil jen pokud:
-    //   1. je přihlášen (request.auth != null)
-    //   2. ID dokumentu odpovídá jeho UID (wildcardový {userId})
-    //   3. pole userId v dokumentu také odpovídá jeho UID
-    //      → nelze zapsat pod cizím UID ani s podvrženým userId polem
-    //
-    // read:   Každý přihlášený hráč může číst profily ostatních —
-    //         potřebné pro matchmaking (hledání soupeřů dle levelu).
-    //
-    // update: Hráč smí měnit pouze svůj vlastní profil.
+    // Čtení necháváme pro všechny přihlášené hráče kvůli battle matchmakingu.
     match /aliens/{userId} {
-      allow read:   if request.auth != null;
+      allow read: if request.auth != null;
+
       allow create: if request.auth != null
                     && request.auth.uid == userId
                     && request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth != null && request.auth.uid == userId;
+
+      allow update: if request.auth != null
+                    && request.auth.uid == userId;
     }
 
     // ── Tréninkové session ───────────────────────────────────────────────
-    // create: Hráč smí vytvořit session pouze pro sebe (userId == uid).
-    // read/update: Pouze vlastník session.
     match /trainingSessions/{sessionId} {
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
+
       allow read, update: if request.auth != null
                           && resource.data.userId == request.auth.uid;
     }
 
     // ── Záznamy soubojů ──────────────────────────────────────────────────
-    // create: Hráč smí vytvořit záznam jen jako útočník (attackerId == uid).
-    // read:   Hráč smí číst záznamy kde figuruje jako útočník nebo obránce.
     match /battles/{battleId} {
       allow create: if request.auth != null
                     && request.resource.data.attackerId == request.auth.uid;
-      allow read:   if request.auth != null
-                    && (resource.data.attackerId == request.auth.uid
-                        || resource.data.defenderId == request.auth.uid);
-    }
-    
-        // ── Shop itemy ───────────────────────────────────────────────────────
-        // `items` je veřejný katalog shopu pro přihlášené hráče.
-        // Zápis necháváme zavřený, itemy se budou přidávat ručně přes Firebase Console.
-        match /items/{itemId} {
-          allow read: if request.auth != null;
-          allow write: if false;
-        }
-    
-        // ── Inventář hráče ───────────────────────────────────────────────────
-        // Hráč smí číst a vytvářet pouze své itemy.
-        // Dokumenty mají ID ve tvaru `${userId}_${itemId}`.
-        match /inventory/{inventoryId} {
-          allow create: if request.auth != null
-                        && request.resource.data.userId == request.auth.uid;
-          allow read, update: if request.auth != null
-                              && resource.data.userId == request.auth.uid;
-        }
 
-    // ── Výchozí: vše ostatní zakázáno ───────────────────────────────────
+      allow read: if request.auth != null
+                  && (
+                    resource.data.attackerId == request.auth.uid
+                    || resource.data.defenderId == request.auth.uid
+                  );
+    }
+
+    // ── Shop itemy ───────────────────────────────────────────────────────
+    match /items/{itemId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ── Inventář hráče ───────────────────────────────────────────────────
+    match /inventory/{inventoryId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+
+      allow read, update: if request.auth != null
+                          && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Výchozí: vše ostatní zakázáno ────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }

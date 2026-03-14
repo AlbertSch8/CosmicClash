@@ -17,6 +17,7 @@ import {doc, getDoc, updateDoc, Timestamp} from "firebase/firestore";
 import {renderTrainingScreen, stopTrainingCountdown} from "./training.js";
 import {renderBattleScreen} from "./battle.js";
 import {renderShopScreen} from "./shop.js";
+import { renderEquipmentScreen } from "./equipment.js";
 
 // ─────────────────────────────────────────────
 //  KONSTANTY
@@ -122,10 +123,13 @@ async function loadAlienProfile(uid, attempt = 0) {
     }
 
     const alien = snap.data();
-    const {newEnergy, updatedAt, changed} = computeEnergyState(alien);
-    if (changed) persistEnergy(uid, newEnergy, updatedAt).catch(console.error);
+    const { newEnergy, updatedAt, changed } = computeEnergyState(alien);
 
-    return {...alien, energy: newEnergy, _energyUpdatedAt: updatedAt};
+    if (changed) {
+        await persistEnergy(uid, newEnergy, updatedAt);
+    }
+
+    return { ...alien, energy: newEnergy, _energyUpdatedAt: updatedAt };
 }
 
 // ─────────────────────────────────────────────
@@ -216,9 +220,8 @@ function renderDashboard(alien, user) {
     <button class="nav-btn" id="nav-shop">
       <span class="nav-icon">🛒</span><span>Obchod</span>
     </button>
-    <button class="nav-btn nav-btn-locked" id="nav-equipment">
+    <button class="nav-btn" id="nav-equipment">
       <span class="nav-icon">🛡️</span><span>Vybavení</span>
-      <span class="nav-badge">Brzy</span>
     </button>
     <button class="nav-btn nav-btn-locked" id="nav-leaderboard" style="grid-column:span 2">
       <span class="nav-icon">🏆</span><span>Leaderboard</span>
@@ -237,13 +240,14 @@ function renderDashboard(alien, user) {
     document.getElementById("nav-training").addEventListener("click", () => goToTraining(alien, user));
     document.getElementById("nav-battle").addEventListener("click", () => goToBattle(alien, user));
     document.getElementById("nav-shop").addEventListener("click", () => goToShop(alien, user));
+    document.getElementById("nav-equipment").addEventListener("click", () => goToEquipment(alien, user));
 
-    ["nav-equipment", "nav-leaderboard"].forEach((id) => {
+    ["nav-leaderboard"].forEach((id) => {
         document.getElementById(id)?.addEventListener("click", () =>
             showToast("🚧 Tato sekce bude brzy dostupná.")
         );
     });
-
+    
     document.getElementById("btn-logout").addEventListener("click", async () => {
         await signOut(auth);
         window.location.replace("/index.html");
@@ -276,6 +280,14 @@ function goToShop(alien, user) {
     const onBack = () => reload(user);
     const onRefresh = () => reload(user);
     renderShopScreen(root, alien, user.uid, onBack, onRefresh);
+}
+
+function goToEquipment(alien, user) {
+    if (energyInterval) clearInterval(energyInterval);
+    const root = document.getElementById("root");
+    const onBack = () => reload(user);
+    const onRefresh = () => reload(user);
+    renderEquipmentScreen(root, alien, user.uid, onBack, onRefresh);
 }
 
 async function reload(user) {
