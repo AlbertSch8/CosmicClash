@@ -5,20 +5,42 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── Veřejné profily uživatelů ────────────────────────────────────────
+    // Kolekce `users` obsahuje jen metadata (uid, email, createdAt).
+    // Hráč smí zapsat/přečíst pouze svůj vlastní dokument.
+    // Podmínka userId == uid chrání před zápisem pod cizím UID.
+    match /users/{userId} {
+      allow read:   if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && request.auth.uid == userId;
+    }
+
     // ── Herní profily ufonů ──────────────────────────────────────────────
-    // Každý hráč smí číst a zapisovat pouze svůj dokument.
-    // VÝJIMKA pro čtení: ostatní hráči potřebují číst profily soupeřů
-    // pro matchmaking — ale jen pole level, name, hp, dmg, stamina.
-    // Firestore neumí field-level read rules → povolíme read pro všechny
-    // autentizované uživatele (profil neobsahuje citlivá data mimo email).
+    // Kolekce `aliens` je herní jádro (HP, DMG, energie, měna, …).
+    //
+    // create: Nový hráč může zapsat svůj profil jen pokud:
+    //   1. je přihlášen (request.auth != null)
+    //   2. ID dokumentu odpovídá jeho UID (wildcardový {userId})
+    //   3. pole userId v dokumentu také odpovídá jeho UID
+    //      → nelze zapsat pod cizím UID ani s podvrženým userId polem
+    //
+    // read:   Každý přihlášený hráč může číst profily ostatních —
+    //         potřebné pro matchmaking (hledání soupeřů dle levelu).
+    //
+    // update: Hráč smí měnit pouze svůj vlastní profil.
     match /aliens/{userId} {
-      // Číst profil smí každý přihlášený (potřeba pro matchmaking soupeřů)
-      allow read: if request.auth != null;
-      // Zapisovat smí pouze vlastník svého dokumentu
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && request.auth.uid == userId;
     }
 
     // ── Tréninkové session ───────────────────────────────────────────────
+    // create: Hráč smí vytvořit session pouze pro sebe (userId == uid).
+    // read/update: Pouze vlastník session.
     match /trainingSessions/{sessionId} {
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
@@ -27,14 +49,14 @@ service cloud.firestore {
     }
 
     // ── Záznamy soubojů ──────────────────────────────────────────────────
-    // Hráč smí vytvořit souboj kde je útočníkem (attackerId == jeho UID).
-    // Číst smí souboje kde byl útočníkem nebo obráncem.
+    // create: Hráč smí vytvořit záznam jen jako útočník (attackerId == uid).
+    // read:   Hráč smí číst záznamy kde figuruje jako útočník nebo obránce.
     match /battles/{battleId} {
       allow create: if request.auth != null
                     && request.resource.data.attackerId == request.auth.uid;
-      allow read: if request.auth != null
-                  && (resource.data.attackerId == request.auth.uid
-                      || resource.data.defenderId == request.auth.uid);
+      allow read:   if request.auth != null
+                    && (resource.data.attackerId == request.auth.uid
+                        || resource.data.defenderId == request.auth.uid);
     }
 
     // ── Výchozí: vše ostatní zakázáno ───────────────────────────────────

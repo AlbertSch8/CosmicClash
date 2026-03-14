@@ -97,11 +97,26 @@ function startEnergyCountdown(updatedAtMs, energy) {
 //  NAČTENÍ PROFILU
 // ─────────────────────────────────────────────
 
-async function loadAlienProfile(uid) {
-  const snap = await getDoc(doc(db, "aliens", uid));
-  if (!snap.exists()) throw new Error("Profil ufouna nebyl nalezen.");
-  const alien = snap.data();
+/**
+ * Načte profil ufouna. Při race condition (nová registrace, dokument
+ * ještě nezapsán) zkusí až 5x s rostoucím zpožděním (backoff).
+ */
+async function loadAlienProfile(uid, attempt = 0) {
+  const MAX_RETRIES = 5;
+  const DELAYS_MS   = [600, 1200, 2000, 3000, 4000];
 
+  const snap = await getDoc(doc(db, "aliens", uid));
+
+  if (!snap.exists()) {
+    if (attempt < MAX_RETRIES) {
+      console.warn(`[CosmicClash] Profil nenalezen, retry ${attempt + 1}/${MAX_RETRIES} za ${DELAYS_MS[attempt]}ms`);
+      await new Promise((r) => setTimeout(r, DELAYS_MS[attempt]));
+      return loadAlienProfile(uid, attempt + 1);
+    }
+    throw new Error("Profil ufouna nebyl nalezen. Zkus se odhlásit a znovu přihlásit.");
+  }
+
+  const alien = snap.data();
   const { newEnergy, updatedAt, changed } = computeEnergyState(alien);
   if (changed) persistEnergy(uid, newEnergy, updatedAt).catch(console.error);
 
