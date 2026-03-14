@@ -11,17 +11,18 @@
  *  6. Helper calculateFinalStats() — připraven na bonusy z vybavení
  */
 
-import { auth, db } from "./firebase.js";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
-import { renderTrainingScreen, stopTrainingCountdown } from "./training.js";
-import { renderBattleScreen } from "./battle.js";
+import {auth, db} from "./firebase.js";
+import {onAuthStateChanged, signOut} from "firebase/auth";
+import {doc, getDoc, updateDoc, Timestamp} from "firebase/firestore";
+import {renderTrainingScreen, stopTrainingCountdown} from "./training.js";
+import {renderBattleScreen} from "./battle.js";
+import {renderShopScreen} from "./shop.js";
 
 // ─────────────────────────────────────────────
 //  KONSTANTY
 // ─────────────────────────────────────────────
 
-const ENERGY_MAX     = 5;
+const ENERGY_MAX = 5;
 const ENERGY_REGEN_MS = 30 * 60 * 1000;
 
 // ─────────────────────────────────────────────
@@ -29,11 +30,11 @@ const ENERGY_REGEN_MS = 30 * 60 * 1000;
 // ─────────────────────────────────────────────
 
 export function calculateFinalStats(alien, equippedItems = null) {
-  let hp      = alien.hp      ?? 100;
-  let dmg     = alien.dmg     ?? 10;
-  let stamina = alien.stamina ?? 100;
-  // Budoucí: if (equippedItems) { hp += ...; dmg += ...; }
-  return { hp, dmg, stamina };
+    let hp = alien.hp ?? 100;
+    let dmg = alien.dmg ?? 10;
+    let stamina = alien.stamina ?? 100;
+    // Budoucí: if (equippedItems) { hp += ...; dmg += ...; }
+    return {hp, dmg, stamina};
 }
 
 // ─────────────────────────────────────────────
@@ -41,29 +42,29 @@ export function calculateFinalStats(alien, equippedItems = null) {
 // ─────────────────────────────────────────────
 
 export function computeEnergyState(alien) {
-  const cur = alien.energy ?? ENERGY_MAX;
-  if (cur >= ENERGY_MAX) return { newEnergy: ENERGY_MAX, updatedAt: Date.now(), changed: false };
+    const cur = alien.energy ?? ENERGY_MAX;
+    if (cur >= ENERGY_MAX) return {newEnergy: ENERGY_MAX, updatedAt: Date.now(), changed: false};
 
-  let updatedAtMs;
-  if (alien.energyUpdatedAt instanceof Timestamp)      updatedAtMs = alien.energyUpdatedAt.toMillis();
-  else if (typeof alien.energyUpdatedAt === "number")  updatedAtMs = alien.energyUpdatedAt;
-  else return { newEnergy: cur, updatedAt: Date.now(), changed: true };
+    let updatedAtMs;
+    if (alien.energyUpdatedAt instanceof Timestamp) updatedAtMs = alien.energyUpdatedAt.toMillis();
+    else if (typeof alien.energyUpdatedAt === "number") updatedAtMs = alien.energyUpdatedAt;
+    else return {newEnergy: cur, updatedAt: Date.now(), changed: true};
 
-  const gained       = Math.floor((Date.now() - updatedAtMs) / ENERGY_REGEN_MS);
-  if (gained === 0)  return { newEnergy: cur, updatedAt: updatedAtMs, changed: false };
+    const gained = Math.floor((Date.now() - updatedAtMs) / ENERGY_REGEN_MS);
+    if (gained === 0) return {newEnergy: cur, updatedAt: updatedAtMs, changed: false};
 
-  return {
-    newEnergy:  Math.min(cur + gained, ENERGY_MAX),
-    updatedAt:  updatedAtMs + gained * ENERGY_REGEN_MS,
-    changed:    true,
-  };
+    return {
+        newEnergy: Math.min(cur + gained, ENERGY_MAX),
+        updatedAt: updatedAtMs + gained * ENERGY_REGEN_MS,
+        changed: true,
+    };
 }
 
 async function persistEnergy(uid, energy, updatedAt) {
-  await updateDoc(doc(db, "aliens", uid), {
-    energy:          energy,
-    energyUpdatedAt: Timestamp.fromMillis(updatedAt),
-  });
+    await updateDoc(doc(db, "aliens", uid), {
+        energy: energy,
+        energyUpdatedAt: Timestamp.fromMillis(updatedAt),
+    });
 }
 
 // ─────────────────────────────────────────────
@@ -73,24 +74,28 @@ async function persistEnergy(uid, energy, updatedAt) {
 let energyInterval = null;
 
 function startEnergyCountdown(updatedAtMs, energy) {
-  if (energyInterval) clearInterval(energyInterval);
-  const el = document.getElementById("energy-timer");
-  if (!el) return;
+    if (energyInterval) clearInterval(energyInterval);
+    const el = document.getElementById("energy-timer");
+    if (!el) return;
 
-  if (energy >= ENERGY_MAX) {
-    el.innerHTML = `<span class="energy-full">⚡ Plná energie!</span>`;
-    return;
-  }
+    if (energy >= ENERGY_MAX) {
+        el.innerHTML = `<span class="energy-full">⚡ Plná energie!</span>`;
+        return;
+    }
 
-  function tick() {
-    const t = document.getElementById("energy-timer");
-    if (!t) { clearInterval(energyInterval); return; }
-    const ms   = ENERGY_REGEN_MS - ((Date.now() - updatedAtMs) % ENERGY_REGEN_MS);
-    const s    = Math.ceil(ms / 1000);
-    t.textContent = `Další energie za: ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-  }
-  tick();
-  energyInterval = setInterval(tick, 1000);
+    function tick() {
+        const t = document.getElementById("energy-timer");
+        if (!t) {
+            clearInterval(energyInterval);
+            return;
+        }
+        const ms = ENERGY_REGEN_MS - ((Date.now() - updatedAtMs) % ENERGY_REGEN_MS);
+        const s = Math.ceil(ms / 1000);
+        t.textContent = `Další energie za: ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    }
+
+    tick();
+    energyInterval = setInterval(tick, 1000);
 }
 
 // ─────────────────────────────────────────────
@@ -102,25 +107,25 @@ function startEnergyCountdown(updatedAtMs, energy) {
  * ještě nezapsán) zkusí až 5x s rostoucím zpožděním (backoff).
  */
 async function loadAlienProfile(uid, attempt = 0) {
-  const MAX_RETRIES = 5;
-  const DELAYS_MS   = [600, 1200, 2000, 3000, 4000];
+    const MAX_RETRIES = 5;
+    const DELAYS_MS = [600, 1200, 2000, 3000, 4000];
 
-  const snap = await getDoc(doc(db, "aliens", uid));
+    const snap = await getDoc(doc(db, "aliens", uid));
 
-  if (!snap.exists()) {
-    if (attempt < MAX_RETRIES) {
-      console.warn(`[CosmicClash] Profil nenalezen, retry ${attempt + 1}/${MAX_RETRIES} za ${DELAYS_MS[attempt]}ms`);
-      await new Promise((r) => setTimeout(r, DELAYS_MS[attempt]));
-      return loadAlienProfile(uid, attempt + 1);
+    if (!snap.exists()) {
+        if (attempt < MAX_RETRIES) {
+            console.warn(`[CosmicClash] Profil nenalezen, retry ${attempt + 1}/${MAX_RETRIES} za ${DELAYS_MS[attempt]}ms`);
+            await new Promise((r) => setTimeout(r, DELAYS_MS[attempt]));
+            return loadAlienProfile(uid, attempt + 1);
+        }
+        throw new Error("Profil ufouna nebyl nalezen. Zkus se odhlásit a znovu přihlásit.");
     }
-    throw new Error("Profil ufouna nebyl nalezen. Zkus se odhlásit a znovu přihlásit.");
-  }
 
-  const alien = snap.data();
-  const { newEnergy, updatedAt, changed } = computeEnergyState(alien);
-  if (changed) persistEnergy(uid, newEnergy, updatedAt).catch(console.error);
+    const alien = snap.data();
+    const {newEnergy, updatedAt, changed} = computeEnergyState(alien);
+    if (changed) persistEnergy(uid, newEnergy, updatedAt).catch(console.error);
 
-  return { ...alien, energy: newEnergy, _energyUpdatedAt: updatedAt };
+    return {...alien, energy: newEnergy, _energyUpdatedAt: updatedAt};
 }
 
 // ─────────────────────────────────────────────
@@ -128,25 +133,25 @@ async function loadAlienProfile(uid, attempt = 0) {
 // ─────────────────────────────────────────────
 
 function renderDashboard(alien, user) {
-  const root = document.getElementById("root");
-  if (!root) return;
+    const root = document.getElementById("root");
+    if (!root) return;
 
-  stopTrainingCountdown();
-  if (energyInterval) clearInterval(energyInterval);
+    stopTrainingCountdown();
+    if (energyInterval) clearInterval(energyInterval);
 
-  const stats       = calculateFinalStats(alien);
-  const xpReq       = alien.level * 100;
-  const xpPct       = Math.min(Math.round((alien.xp / xpReq) * 100), 100);
-  const hpBase      = 100 + (alien.level - 1) * 10;
-  const hpPct       = Math.min(Math.round((stats.hp / hpBase) * 100), 100);
-  const stPct       = Math.min(stats.stamina, 100);
-  const origin      = alien.origin ?? alien.type ?? "Neznámý původ";
+    const stats = calculateFinalStats(alien);
+    const xpReq = alien.level * 100;
+    const xpPct = Math.min(Math.round((alien.xp / xpReq) * 100), 100);
+    const hpBase = 100 + (alien.level - 1) * 10;
+    const hpPct = Math.min(Math.round((stats.hp / hpBase) * 100), 100);
+    const stPct = Math.min(stats.stamina, 100);
+    const origin = alien.origin ?? alien.type ?? "Neznámý původ";
 
-  const energyDots = Array.from({ length: ENERGY_MAX }, (_, i) =>
-    `<div class="energy-dot ${i < (alien.energy ?? 0) ? "filled" : ""}">${i < (alien.energy ?? 0) ? "⚡" : ""}</div>`
-  ).join("");
+    const energyDots = Array.from({length: ENERGY_MAX}, (_, i) =>
+        `<div class="energy-dot ${i < (alien.energy ?? 0) ? "filled" : ""}">${i < (alien.energy ?? 0) ? "⚡" : ""}</div>`
+    ).join("");
 
-  root.innerHTML = `
+    root.innerHTML = `
     <div class="dash-header">
       <span class="logo-icon">🛸</span>
       <h1>Velitel ${esc(alien.name)}</h1>
@@ -200,49 +205,49 @@ function renderDashboard(alien, user) {
     </div>
 
     <div class="card">
-      <p class="section-title">Velitelské centrum</p>
-      <div class="nav-grid">
-        <button class="nav-btn" id="nav-training">
-          <span class="nav-icon">🏋️</span><span>Trénink</span>
-        </button>
-        <button class="nav-btn" id="nav-battle">
-          <span class="nav-icon">⚔️</span><span>Souboj</span>
-        </button>
-        <button class="nav-btn nav-btn-locked" id="nav-shop">
-          <span class="nav-icon">🛒</span><span>Obchod</span>
-          <span class="nav-badge">Brzy</span>
-        </button>
-        <button class="nav-btn nav-btn-locked" id="nav-equipment">
-          <span class="nav-icon">🛡️</span><span>Vybavení</span>
-          <span class="nav-badge">Brzy</span>
-        </button>
-        <button class="nav-btn nav-btn-locked" id="nav-leaderboard" style="grid-column:span 2">
-          <span class="nav-icon">🏆</span><span>Leaderboard</span>
-          <span class="nav-badge">Brzy</span>
-        </button>
-      </div>
-    </div>
+  <p class="section-title">Velitelské centrum</p>
+  <div class="nav-grid">
+    <button class="nav-btn" id="nav-training">
+      <span class="nav-icon">🏋️</span><span>Trénink</span>
+    </button>
+    <button class="nav-btn" id="nav-battle">
+      <span class="nav-icon">⚔️</span><span>Souboj</span>
+    </button>
+    <button class="nav-btn" id="nav-shop">
+      <span class="nav-icon">🛒</span><span>Obchod</span>
+    </button>
+    <button class="nav-btn nav-btn-locked" id="nav-equipment">
+      <span class="nav-icon">🛡️</span><span>Vybavení</span>
+      <span class="nav-badge">Brzy</span>
+    </button>
+    <button class="nav-btn nav-btn-locked" id="nav-leaderboard" style="grid-column:span 2">
+      <span class="nav-icon">🏆</span><span>Leaderboard</span>
+      <span class="nav-badge">Brzy</span>
+    </button>
+  </div>
+</div>
 
     <div class="card">
       <button class="btn btn-danger" id="btn-logout">Odhlásit se</button>
     </div>
   `;
 
-  startEnergyCountdown(alien._energyUpdatedAt, alien.energy ?? 0);
+    startEnergyCountdown(alien._energyUpdatedAt, alien.energy ?? 0);
 
-  document.getElementById("nav-training").addEventListener("click", () => goToTraining(alien, user));
-  document.getElementById("nav-battle").addEventListener("click",   () => goToBattle(alien, user));
+    document.getElementById("nav-training").addEventListener("click", () => goToTraining(alien, user));
+    document.getElementById("nav-battle").addEventListener("click", () => goToBattle(alien, user));
+    document.getElementById("nav-shop").addEventListener("click", () => goToShop(alien, user));
 
-  ["nav-shop", "nav-equipment", "nav-leaderboard"].forEach((id) => {
-    document.getElementById(id)?.addEventListener("click", () =>
-      showToast("🚧 Tato sekce bude brzy dostupná.")
-    );
-  });
+    ["nav-equipment", "nav-leaderboard"].forEach((id) => {
+        document.getElementById(id)?.addEventListener("click", () =>
+            showToast("🚧 Tato sekce bude brzy dostupná.")
+        );
+    });
 
-  document.getElementById("btn-logout").addEventListener("click", async () => {
-    await signOut(auth);
-    window.location.replace("/index.html");
-  });
+    document.getElementById("btn-logout").addEventListener("click", async () => {
+        await signOut(auth);
+        window.location.replace("/index.html");
+    });
 }
 
 // ─────────────────────────────────────────────
@@ -250,28 +255,36 @@ function renderDashboard(alien, user) {
 // ─────────────────────────────────────────────
 
 function goToTraining(alien, user) {
-  if (energyInterval) clearInterval(energyInterval);
-  const root     = document.getElementById("root");
-  const onBack    = () => reload(user);
-  const onRefresh = () => reload(user);
-  renderTrainingScreen(root, alien, user.uid, onBack, onRefresh);
+    if (energyInterval) clearInterval(energyInterval);
+    const root = document.getElementById("root");
+    const onBack = () => reload(user);
+    const onRefresh = () => reload(user);
+    renderTrainingScreen(root, alien, user.uid, onBack, onRefresh);
 }
 
 function goToBattle(alien, user) {
-  if (energyInterval) clearInterval(energyInterval);
-  const root     = document.getElementById("root");
-  const onBack    = () => reload(user);
-  const onRefresh = () => reload(user);
-  renderBattleScreen(root, alien, user.uid, onBack, onRefresh);
+    if (energyInterval) clearInterval(energyInterval);
+    const root = document.getElementById("root");
+    const onBack = () => reload(user);
+    const onRefresh = () => reload(user);
+    renderBattleScreen(root, alien, user.uid, onBack, onRefresh);
+}
+
+function goToShop(alien, user) {
+    if (energyInterval) clearInterval(energyInterval);
+    const root = document.getElementById("root");
+    const onBack = () => reload(user);
+    const onRefresh = () => reload(user);
+    renderShopScreen(root, alien, user.uid, onBack, onRefresh);
 }
 
 async function reload(user) {
-  try {
-    const alien = await loadAlienProfile(user.uid);
-    renderDashboard(alien, user);
-  } catch (err) {
-    renderError(err.message);
-  }
+    try {
+        const alien = await loadAlienProfile(user.uid);
+        renderDashboard(alien, user);
+    } catch (err) {
+        renderError(err.message);
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -279,41 +292,41 @@ async function reload(user) {
 // ─────────────────────────────────────────────
 
 function esc(str) {
-  return String(str ?? "")
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    return String(str ?? "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function showToast(msg) {
-  const old = document.getElementById("cc-toast");
-  if (old) old.remove();
-  const el = document.createElement("div");
-  el.id = "cc-toast";
-  el.style.cssText = `
+    const old = document.getElementById("cc-toast");
+    if (old) old.remove();
+    const el = document.createElement("div");
+    el.id = "cc-toast";
+    el.style.cssText = `
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
     background:rgba(15,8,30,.97);border:1px solid rgba(123,47,255,.45);
     border-radius:12px;padding:12px 22px;color:#e8d5ff;font-size:13px;
     z-index:200;box-shadow:0 4px 24px rgba(123,47,255,.35);
     max-width:320px;text-align:center;
   `;
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
 }
 
 function renderError(message) {
-  const root = document.getElementById("root");
-  if (!root) return;
-  root.innerHTML = `
+    const root = document.getElementById("root");
+    if (!root) return;
+    root.innerHTML = `
     <div class="dash-header"><span class="logo-icon">💥</span><h1>Chyba</h1></div>
     <div class="card">
       <p style="color:#fca5a5;margin-bottom:16px;font-size:14px;">${esc(message)}</p>
       <button class="btn btn-danger" id="btn-back">Zpět na přihlášení</button>
     </div>
   `;
-  document.getElementById("btn-back")?.addEventListener("click", () =>
-    window.location.replace("/index.html")
-  );
+    document.getElementById("btn-back")?.addEventListener("click", () =>
+        window.location.replace("/index.html")
+    );
 }
 
 // ─────────────────────────────────────────────
@@ -321,12 +334,15 @@ function renderError(message) {
 // ─────────────────────────────────────────────
 
 onAuthStateChanged(auth, async (user) => {
-  if (!user) { window.location.replace("/index.html"); return; }
-  try {
-    const alien = await loadAlienProfile(user.uid);
-    renderDashboard(alien, user);
-  } catch (err) {
-    console.error("[CosmicClash]", err);
-    renderError(err.message ?? "Neznámá chyba.");
-  }
+    if (!user) {
+        window.location.replace("/index.html");
+        return;
+    }
+    try {
+        const alien = await loadAlienProfile(user.uid);
+        renderDashboard(alien, user);
+    } catch (err) {
+        console.error("[CosmicClash]", err);
+        renderError(err.message ?? "Neznámá chyba.");
+    }
 });

@@ -1,6 +1,6 @@
-﻿import { auth } from "./firebase.js";
-import { loadDashboard } from "./dashboard.js";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+﻿import {auth} from "./firebase.js";
+import {loadDashboard} from "./dashboard.js";
+import {onAuthStateChanged, signOut} from "firebase/auth";
 
 const content = document.getElementById("content");
 

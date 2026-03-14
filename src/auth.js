@@ -14,26 +14,26 @@
  *     srozumitelnou chybovou hlášku.
  */
 
-import { auth, db } from "./firebase.js";
+import {auth, db} from "./firebase.js";
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     onAuthStateChanged,
 } from "firebase/auth";
-import { doc, setDoc, Timestamp } from "firebase/firestore";
+import {doc, setDoc, Timestamp} from "firebase/firestore";
 
 // ─────────────────────────────────────────────
 //  CHYBOVÉ HLÁŠKY
 // ─────────────────────────────────────────────
 
 const ERROR_MESSAGES = {
-    "auth/user-not-found":        "Účet s tímto emailem neexistuje.",
-    "auth/wrong-password":        "Nesprávné heslo.",
-    "auth/invalid-email":         "Neplatný formát emailu.",
-    "auth/email-already-in-use":  "Tento email je již používán.",
-    "auth/weak-password":         "Heslo musí mít alespoň 6 znaků.",
-    "auth/too-many-requests":     "Příliš mnoho pokusů. Zkus to za chvíli.",
-    "auth/invalid-credential":    "Nesprávný email nebo heslo.",
+    "auth/user-not-found": "Účet s tímto emailem neexistuje.",
+    "auth/wrong-password": "Nesprávné heslo.",
+    "auth/invalid-email": "Neplatný formát emailu.",
+    "auth/email-already-in-use": "Tento email je již používán.",
+    "auth/weak-password": "Heslo musí mít alespoň 6 znaků.",
+    "auth/too-many-requests": "Příliš mnoho pokusů. Zkus to za chvíli.",
+    "auth/invalid-credential": "Nesprávný email nebo heslo.",
 };
 
 function friendlyError(code) {
@@ -78,7 +78,7 @@ function setLoading(btnId, loading) {
 
 async function handleLogin() {
     const email = document.getElementById("login-email").value.trim();
-    const pass  = document.getElementById("login-password").value;
+    const pass = document.getElementById("login-password").value;
 
     clearStatuses();
 
@@ -114,9 +114,9 @@ async function handleLogin() {
 let isRegistering = false;
 
 async function handleRegister() {
-    const name  = document.getElementById("register-name").value.trim();
+    const name = document.getElementById("register-name").value.trim();
     const email = document.getElementById("register-email").value.trim();
-    const pass  = document.getElementById("register-password").value;
+    const pass = document.getElementById("register-password").value;
 
     clearStatuses();
 
@@ -136,16 +136,16 @@ async function handleRegister() {
     try {
         // ── Krok 1: Vytvoření účtu ve Firebase Auth ────────────────────────
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
-        const uid  = cred.user.uid;
-        const now  = Timestamp.now();
+        const uid = cred.user.uid;
+        const now = Timestamp.now();
 
         showStatus("register-status", "success", "✓ Účet vytvořen. Zapisuji profil...");
 
         // ── Krok 2: Zápis veřejného profilu do kolekce `users` ────────────
         // Obsahuje pouze metadata — bez herních dat.
         await setDoc(doc(db, "users", uid), {
-            userId:    uid,
-            email:     email,
+            userId: uid,
+            email: email,
             createdAt: now,
         });
 
@@ -154,30 +154,30 @@ async function handleRegister() {
         // Teprve po úspěchu tohoto zápisu přesměrujeme na dashboard.
         await setDoc(doc(db, "aliens", uid), {
             // Identifikace
-            userId:       uid,
-            name:         name,
-            email:        email,
-            type:         "Neznámý původ", // hráč si změní v profilu (budoucí krok)
+            userId: uid,
+            name: name,
+            email: email,
+            type: "Neznámý původ", // hráč si změní v profilu (budoucí krok)
 
             // Postup
-            level:        1,
-            xp:           0,
+            level: 1,
+            xp: 0,
 
             // Bojové statistiky
-            hp:           100,
-            dmg:          10,
-            stamina:      100,
+            hp: 100,
+            dmg: 10,
+            stamina: 100,
 
             // Energie (systém obnovy z Kroku 2)
-            energy:           5,
-            energyUpdatedAt:  now,
+            energy: 5,
+            energyUpdatedAt: now,
 
             // Měna
-            starCoins:    50,
+            starCoins: 50,
             galacticGems: 0,
 
             // Metadata
-            createdAt:    now,
+            createdAt: now,
         });
 
         // ── Krok 4: Oba zápisy proběhly → přesměrujeme na dashboard ───────
@@ -222,7 +222,7 @@ function switchTab(tab) {
             (tab === "login" && i === 0) || (tab === "register" && i === 1)
         );
     });
-    document.getElementById("form-login").classList.toggle("active",    tab === "login");
+    document.getElementById("form-login").classList.toggle("active", tab === "login");
     document.getElementById("form-register").classList.toggle("active", tab === "register");
     clearStatuses();
 }
@@ -235,9 +235,9 @@ function createStars() {
     const starsEl = document.getElementById("stars");
     if (!starsEl) return;
     for (let i = 0; i < 120; i++) {
-        const s    = document.createElement("div");
+        const s = document.createElement("div");
         s.className = "star-dot";
-        const size  = Math.random() * 2.2 + 0.5;
+        const size = Math.random() * 2.2 + 0.5;
         s.style.cssText = `
             width:${size}px; height:${size}px;
             top:${Math.random() * 100}%; left:${Math.random() * 100}%;
@@ -254,9 +254,9 @@ function createStars() {
 //  GLOBÁLNÍ EXPOZICE PRO INLINE HANDLERY V HTML
 // ─────────────────────────────────────────────
 
-window.switchTab       = switchTab;
-window.handleLogin     = handleLogin;
-window.handleRegister  = handleRegister;
+window.switchTab = switchTab;
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
 
 // ─────────────────────────────────────────────
 //  KLÁVESOVÁ ZKRATKA ENTER

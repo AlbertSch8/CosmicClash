@@ -58,6 +58,24 @@ service cloud.firestore {
                     && (resource.data.attackerId == request.auth.uid
                         || resource.data.defenderId == request.auth.uid);
     }
+    
+        // ── Shop itemy ───────────────────────────────────────────────────────
+        // `items` je veřejný katalog shopu pro přihlášené hráče.
+        // Zápis necháváme zavřený, itemy se budou přidávat ručně přes Firebase Console.
+        match /items/{itemId} {
+          allow read: if request.auth != null;
+          allow write: if false;
+        }
+    
+        // ── Inventář hráče ───────────────────────────────────────────────────
+        // Hráč smí číst a vytvářet pouze své itemy.
+        // Dokumenty mají ID ve tvaru `${userId}_${itemId}`.
+        match /inventory/{inventoryId} {
+          allow create: if request.auth != null
+                        && request.resource.data.userId == request.auth.uid;
+          allow read, update: if request.auth != null
+                              && resource.data.userId == request.auth.uid;
+        }
 
     // ── Výchozí: vše ostatní zakázáno ───────────────────────────────────
     match /{document=**} {

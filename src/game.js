@@ -1,12 +1,12 @@
-﻿import { db } from "./firebase.js";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+﻿import {db} from "./firebase.js";
+import {doc, getDoc, updateDoc} from "firebase/firestore";
 
 function getRequiredXp(level) {
     return level * 100;
 }
 
 function applyLevelUp(alien) {
-    let updatedAlien = { ...alien };
+    let updatedAlien = {...alien};
 
     while (updatedAlien.xp >= getRequiredXp(updatedAlien.level)) {
         updatedAlien.xp -= getRequiredXp(updatedAlien.level);
