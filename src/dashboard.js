@@ -285,12 +285,26 @@ function renderDashboard(alien, user, equippedItems) {
       `<div class="energy-dot ${i < (alien.energy ?? 0) ? "filled" : ""}">${i < (alien.energy ?? 0) ? "⚡" : ""}</div>`
   ).join("");
 
+  const avatarUrl =
+      alien.avatarUrl ||
+      alien.avatar ||
+      alien.photoURL ||
+      alien.photoUrl ||
+      alien.imageUrl ||
+      alien.img ||
+      "/icons/ufo.png";
+
   root.innerHTML = `
-    <div class="dash-header">
-      <img src="/icons/ufo.png" alt="UFO" class="dash-logo-img" />
-      <h1>Velitel ${esc(alien.name)}</h1>
-      <p class="subtitle">${esc(origin)}</p>
-    </div>
+  <div class="dash-header">
+    <img
+      src="${esc(avatarUrl)}"
+      alt="Avatar ufouna"
+      class="dash-logo-img"
+      onerror="this.onerror=null;this.src='/icons/ufo.png';"
+    />
+    <h1>Velitel ${esc(alien.name)}</h1>
+    <p class="subtitle">${esc(origin)}</p>
+  </div>
 
     <div class="card">
       <p class="section-title">Herní profil</p>
@@ -425,8 +439,12 @@ function renderDashboard(alien, user, equippedItems) {
     <div class="card" style="display:flex;gap:10px;align-items:center;">
       <button class="btn btn-danger" id="btn-logout" style="flex:1;">Odhlásit se</button>
       <button class="btn-settings-btn" id="btn-settings" title="Nastavení">
-        <img src="/icons/ufo.png" style="width:36px;height:36px;" alt="Nastavení" />
-        <span style="font-size:10px;display:block;margin-top:3px;letter-spacing:.08em;">Nastavení</span>
+<img
+  src="${esc(avatarUrl)}"
+  style="width:36px;height:36px;border-radius:50%;object-fit:cover;"
+  alt="Nastavení"
+  onerror="this.onerror=null;this.src='/icons/ufo.png';"
+/>        <span style="font-size:10px;display:block;margin-top:3px;letter-spacing:.08em;">Nastavení</span>
       </button>
     </div>
 
