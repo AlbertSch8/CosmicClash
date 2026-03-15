@@ -97,6 +97,9 @@ npm run build
 # Nasazení na Firebase Hosting
 firebase deploy
 
+Hra poběží na `https://cosmicclash-b9510.web.app/`.
+
+
 # Nasazení pouze pravidel a indexů
 firebase deploy --only firestore:rules,firestore:indexes
 ```
