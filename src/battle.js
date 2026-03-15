@@ -32,6 +32,10 @@ import { loadEquippedItems, computeEnergyState } from "./dashboard.js";
 const LEVEL_RANGE = 2;
 const MATCHMAKING_POOL = 30;
 const OPPONENT_COUNT = 3;
+const TROPHIES_WIN_MIN = 25;
+const TROPHIES_WIN_MAX = 30;
+const TROPHIES_LOSS_MIN = 10;
+const TROPHIES_LOSS_MAX = 15;
 
 const WIN_REWARDS = {
   xp: 40,
@@ -157,31 +161,40 @@ export async function executeBattle(uid, opponent) {
   let alienUpdate = {};
   let rewards = {};
 
+  const currentTrophies = Math.max(0, alien.galaxyTrophies ?? 0);
+
   if (won) {
     const gemDrop = Math.random() < WIN_REWARDS.gemChance;
     const newGems = (alien.galacticGems ?? 0) + (gemDrop ? WIN_REWARDS.gemAmount : 0);
+    const trophyGain = randomInt(TROPHIES_WIN_MIN, TROPHIES_WIN_MAX);
 
     alienUpdate = {
       xp: (alien.xp ?? 0) + WIN_REWARDS.xp,
       starCoins: (alien.starCoins ?? 0) + WIN_REWARDS.starCoins,
       galacticGems: newGems,
+      galaxyTrophies: currentTrophies + trophyGain,
     };
 
     rewards = {
       xp: WIN_REWARDS.xp,
       starCoins: WIN_REWARDS.starCoins,
       galacticGems: gemDrop ? WIN_REWARDS.gemAmount : 0,
+      galaxyTrophies: trophyGain,
     };
   } else {
     const reducedEnergy = Math.max(0, energy - LOSS_ENERGY_PENALTY);
+    const trophyLoss = randomInt(TROPHIES_LOSS_MIN, TROPHIES_LOSS_MAX);
+    const nextTrophies = Math.max(0, currentTrophies - trophyLoss);
 
     alienUpdate = {
       energy: reducedEnergy,
       energyUpdatedAt: Timestamp.now(),
+      galaxyTrophies: nextTrophies,
     };
 
     rewards = {
       energy: -LOSS_ENERGY_PENALTY,
+      galaxyTrophies: nextTrophies - currentTrophies,
     };
   }
 
@@ -1175,9 +1188,16 @@ function _formatRewards(rewards, won) {
   if ((rewards.xp ?? 0) > 0) parts.push(`+${rewards.xp} XP`);
   if ((rewards.starCoins ?? 0) > 0) parts.push(`+${rewards.starCoins} Star Coins`);
   if ((rewards.galacticGems ?? 0) > 0) parts.push(`+${rewards.galacticGems} Galactic Gem`);
+  if ((rewards.galaxyTrophies ?? 0) > 0) parts.push(`+${rewards.galaxyTrophies} Galaxy Trophies`);
+  if ((rewards.galaxyTrophies ?? 0) < 0) parts.push(`${rewards.galaxyTrophies} Galaxy Trophies`);
   if ((rewards.energy ?? 0) < 0) parts.push(`${rewards.energy} energie`);
 
   return parts.length ? parts.join(" · ") : (won ? "Výhra bez dropu navíc." : "Žádná extra penalizace.");
+}
+function randomInt(min, max) {
+  const low = Math.ceil(min);
+  const high = Math.floor(max);
+  return Math.floor(Math.random() * (high - low + 1)) + low;
 }
 
 function _setStatus(message) {
