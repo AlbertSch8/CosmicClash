@@ -5,10 +5,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── Helper: je volající admin? ───────────────────────────────────────
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.uid == "eWJmAYdCNbOwAb7OXD5T7C6S2zQ2";
+    }
+
     // ── Veřejné profily uživatelů ────────────────────────────────────────
-    // Kolekce `users` obsahuje jen metadata (uid, email, createdAt).
-    // Hráč smí zapsat/přečíst pouze svůj vlastní dokument.
-    // Podmínka userId == uid chrání před zápisem pod cizím UID.
     match /users/{userId} {
       allow read:   if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null
@@ -18,29 +21,17 @@ service cloud.firestore {
     }
 
     // ── Herní profily ufonů ──────────────────────────────────────────────
-    // Kolekce `aliens` je herní jádro (HP, DMG, energie, měna, …).
-    //
-    // create: Nový hráč může zapsat svůj profil jen pokud:
-    //   1. je přihlášen (request.auth != null)
-    //   2. ID dokumentu odpovídá jeho UID (wildcardový {userId})
-    //   3. pole userId v dokumentu také odpovídá jeho UID
-    //      → nelze zapsat pod cizím UID ani s podvrženým userId polem
-    //
-    // read:   Každý přihlášený hráč může číst profily ostatních —
-    //         potřebné pro matchmaking (hledání soupeřů dle levelu).
-    //
-    // update: Hráč smí měnit pouze svůj vlastní profil.
+    // update: hráč může měnit jen sebe, admin může měnit kohokoliv
     match /aliens/{userId} {
       allow read:   if request.auth != null;
       allow create: if request.auth != null
                     && request.auth.uid == userId
                     && request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null
+                    && (request.auth.uid == userId || isAdmin());
     }
 
     // ── Tréninkové session ───────────────────────────────────────────────
-    // create: Hráč smí vytvořit session pouze pro sebe (userId == uid).
-    // read/update: Pouze vlastník session.
     match /trainingSessions/{sessionId} {
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
@@ -49,8 +40,6 @@ service cloud.firestore {
     }
 
     // ── Záznamy soubojů ──────────────────────────────────────────────────
-    // create: Hráč smí vytvořit záznam jen jako útočník (attackerId == uid).
-    // read:   Hráč smí číst záznamy kde figuruje jako útočník nebo obránce.
     match /battles/{battleId} {
       allow create: if request.auth != null
                     && request.resource.data.attackerId == request.auth.uid;
@@ -60,28 +49,20 @@ service cloud.firestore {
     }
 
     // ── Katalog předmětů (items) ─────────────────────────────────────────
-    // Globální katalog zbraní a brnění — čtení pro všechny přihlášené hráče.
-    // Zápis (create/update/delete) je zakázán z klienta — spravuje se ručně
-    // přes Firebase konzoli nebo Cloud Functions (budoucí admin panel).
+    // Čtení: každý přihlášený hráč
+    // Zápis (update bonusů a cen): pouze admin
     match /items/{itemId} {
-      allow read:  if request.auth != null;
-      allow write: if false;
+      allow read:   if request.auth != null;
+      allow write:  if isAdmin();
     }
-        // ── Inventář hráče ───────────────────────────────────────────────────
-    // Každý item v inventáři patří jednomu hráči.
-    // get:    Povolen pro přihlášeného hráče kvůli kontrole duplicity v transakci.
-    // list:   Hráč smí listovat pouze své vlastní itemy.
-    // create: Hráč smí vytvořit pouze svůj vlastní item v inventáři.
-    // update/delete: Z klienta zakázáno.
+
+    // ── Inventář hráče ───────────────────────────────────────────────────
     match /inventory/{inventoryId} {
-      allow get: if request.auth != null;
-
-      allow list: if request.auth != null
-                  && resource.data.userId == request.auth.uid;
-
+      allow get:    if request.auth != null;
+      allow list:   if request.auth != null
+                    && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
-
       allow update, delete: if false;
     }
 
