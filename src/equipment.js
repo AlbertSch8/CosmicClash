@@ -157,7 +157,7 @@ export async function renderEquipmentScreen(root, alien, userId, onBack, onRefre
                 try {
                     await equipItem(userId, item);
                     showToast(`Nasazeno: ${item.name}`);
-                    onRefresh();
+                    await onRefresh();
                 } catch (err) {
                     showToast(err.message ?? "Nasazení selhalo.");
                     equipBtn.disabled = false;
@@ -172,7 +172,7 @@ export async function renderEquipmentScreen(root, alien, userId, onBack, onRefre
                 try {
                     await unequipItem(userId, item.type);
                     showToast(`Sundáno: ${item.name}`);
-                    onRefresh();
+                    await onRefresh();
                 } catch (err) {
                     showToast(err.message ?? "Sundání selhalo.");
                     unequipBtn.disabled = false;

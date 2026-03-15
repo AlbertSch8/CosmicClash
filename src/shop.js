@@ -17,7 +17,6 @@ import {
     orderBy,
     getDocs,
     doc,
-    getDoc,
     runTransaction,
     Timestamp,
 } from "firebase/firestore";
@@ -170,7 +169,7 @@ export async function renderShopScreen(root, alien, userId, onBack, onRefresh) {
                 try {
                     await buyItem(userId, item);
                     showToast(`✅ Koupil jsi item: ${item.name}`);
-                    onRefresh();
+                    await onRefresh();
                 } catch (err) {
                     showToast(`❌ ${err.message ?? "Nákup selhal."}`);
                     btn.disabled = false;
