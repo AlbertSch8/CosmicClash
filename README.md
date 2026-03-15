@@ -1,4 +1,4 @@
-# 🛸 UFO: Cosmic Clash
+# Cosmic Clash
 
 > Prohlížečová sci-fi hra pro více hráčů postavená na čistém JavaScriptu, Vite a Firebase.
 
