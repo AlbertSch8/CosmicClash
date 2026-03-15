@@ -1,4 +1,4 @@
-﻿/**
+/**
  * UFO: Cosmic Clash — Shop systém
  *
  * Co umí:
@@ -264,7 +264,7 @@ function renderItemCard(item, isOwned = false) {
           <div style="font-size:13px;color:#c4b5d4;line-height:1.5;">
             +${hpBonus} HP<br>
             +${dmgBonus} DMG<br>
-            +${staminaBonus} Stamina
+            ${item.type === "weapon" ? `${staminaBonus} Stamina / útok` : `+${staminaBonus} Stamina`}
           </div>
 
         </div>

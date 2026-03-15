@@ -73,7 +73,7 @@ export async function loadEquippedItems(alien) {
   return {
     bonusHp: (weapon?.hpBonus ?? 0) + (armor?.hpBonus ?? 0),
     bonusDmg: (weapon?.dmgBonus ?? 0) + (armor?.dmgBonus ?? 0),
-    bonusStamina: (weapon?.staminaBonus ?? 0) + (armor?.staminaBonus ?? 0),
+    bonusStamina: (armor?.staminaBonus ?? 0),
     weapon,
     armor,
   };

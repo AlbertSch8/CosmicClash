@@ -47,6 +47,7 @@ const TROPHIES_LOSS_MIN = 10;
 const TROPHIES_LOSS_MAX = 15;
 
 const BASE_STAMINA_REGEN = 5;
+const BASE_ATTACK_STAMINA_COST = 10;
 const MAX_BATTLE_ROUNDS = 60;
 
 // ─────────────────────────────────────────────
@@ -63,22 +64,22 @@ export async function findOpponents(uid, myLevel, count = OPPONENT_COUNT) {
   const maxLevel = (myLevel ?? 1) + LEVEL_RANGE;
 
   const q = query(
-      collection(db, "aliens"),
-      where("level", ">=", minLevel),
-      orderBy("level", "asc"),
-      limit(MATCHMAKING_POOL)
+    collection(db, "aliens"),
+    where("level", ">=", minLevel),
+    orderBy("level", "asc"),
+    limit(MATCHMAKING_POOL)
   );
 
   const snap = await getDocs(q);
   if (snap.empty) return [];
 
   const candidates = snap.docs
-      .filter((d) => d.id !== uid)
-      .map((d) => ({ id: d.id, data: d.data() }))
-      .filter((entry) => {
-        const lvl = entry.data?.level ?? 1;
-        return lvl >= minLevel && lvl <= maxLevel;
-      });
+    .filter((d) => d.id !== uid)
+    .map((d) => ({ id: d.id, data: d.data() }))
+    .filter((entry) => {
+      const lvl = entry.data?.level ?? 1;
+      return lvl >= minLevel && lvl <= maxLevel;
+    });
 
   if (!candidates.length) return [];
 
@@ -248,10 +249,10 @@ export async function executeBattle(uid, opponent) {
 
 export async function fetchBattleHistory(uid, count = 10) {
   const q = query(
-      collection(db, "battles"),
-      where("attackerId", "==", uid),
-      orderBy("createdAt", "desc"),
-      limit(count)
+    collection(db, "battles"),
+    where("attackerId", "==", uid),
+    orderBy("createdAt", "desc"),
+    limit(count)
   );
 
   const snap = await getDocs(q);
@@ -287,38 +288,43 @@ function buildBattleFighter(uid, alien, equippedItems, isAttacker = false) {
   const maxStamina = baseStamina + bonusStamina;
 
   const armorReduction =
-      (armor?.armorReduction ?? 0) ||
-      (armor?.defense ?? 0) ||
-      Math.max(
-          0,
-          Math.round(((armor?.hpBonus ?? 0) * 0.08) + ((armor?.dmgBonus ?? 0) * 0.05))
-      );
+    (armor?.armorReduction ?? 0) ||
+    (armor?.defense ?? 0) ||
+    Math.max(
+      0,
+      Math.round(((armor?.hpBonus ?? 0) * 0.08) + ((armor?.dmgBonus ?? 0) * 0.05))
+    );
 
   const staminaRegenBonus =
-      (armor?.staminaRegenBonus ?? 0) ||
-      (armor?.regenBonus ?? 0) ||
-      0;
+    (armor?.staminaRegenBonus ?? 0) ||
+    (armor?.regenBonus ?? 0) ||
+    0;
 
   const dodgeChance = clamp(
-      (
-          (alien.dodgeChance ?? 0) +
-          (weapon?.dodgeChance ?? 0) +
-          (armor?.dodgeChance ?? 0)
-      ) || 0.06,
-      0,
-      0.35
+    (
+      (alien.dodgeChance ?? 0) +
+      (weapon?.dodgeChance ?? 0) +
+      (armor?.dodgeChance ?? 0)
+    ) || 0.06,
+    0,
+    0.35
   );
 
   const weaponDamageBonus =
-      (weapon?.battleDamageBonus ?? 0) ||
-      (weapon?.weaponDamage ?? 0) ||
-      (weapon?.dmgBonus ?? 0) ||
-      0;
+    (weapon?.battleDamageBonus ?? 0) ||
+    (weapon?.weaponDamage ?? 0) ||
+    (weapon?.dmgBonus ?? 0) ||
+    0;
+
+  const weaponExtraStaminaCost = Math.max(
+    0,
+    Number(weapon?.staminaBonus ?? weapon?.staminaCost ?? 0)
+  );
 
   const staminaCost = clamp(
-      (weapon?.staminaCost ?? estimateWeaponStaminaCost(weapon)),
-      5,
-      20
+    BASE_ATTACK_STAMINA_COST + weaponExtraStaminaCost,
+    5,
+    30
   );
 
   return {
@@ -377,14 +383,14 @@ function simulateBattle(attackerInput, defenderInput) {
       current.stamina = Math.min(current.maxStamina, current.stamina + current.staminaRegen);
 
       message =
-          `${current.name}: málo staminy (${beforeRegen}/${current.maxStamina}) -> regen na ${current.stamina}.`;
+        `${current.name}: málo staminy (${beforeRegen}/${current.maxStamina}) -> regen na ${current.stamina}.`;
     } else {
       current.stamina = Math.max(0, current.stamina - cost);
 
       const dodgeRoll = Math.random();
       if (dodgeRoll < enemy.dodgeChance) {
         message =
-            `${current.name} -> ${current.weaponName} | ${enemy.name} uhnul | STA ${current.stamina}/${current.maxStamina}`;
+          `${current.name} -> ${current.weaponName} | ${enemy.name} uhnul | STA ${current.stamina}/${current.maxStamina}`;
       } else {
         const rawDamage = current.dmg + current.weaponDamageBonus;
         const randomMultiplier = 0.8 + Math.random() * 0.4;
@@ -394,7 +400,7 @@ function simulateBattle(attackerInput, defenderInput) {
         enemy.hp = Math.max(0, enemy.hp - finalDamage);
 
         message =
-            `${current.name} -> ${current.weaponName} | -${finalDamage} HP | ${enemy.name}: ${enemy.hp}/${enemy.maxHp} HP`;
+          `${current.name} -> ${current.weaponName} | -${finalDamage} HP | ${enemy.name}: ${enemy.hp}/${enemy.maxHp} HP`;
       }
 
       enemy.stamina = Math.min(enemy.maxStamina, enemy.stamina + enemy.staminaRegen);
@@ -448,10 +454,10 @@ function simulateBattle(attackerInput, defenderInput) {
 
 function createSummary(fighter) {
   const score =
-      Math.round(fighter.hp) +
-      Math.round(fighter.stamina) +
-      Math.round(fighter.dmg * 2) +
-      Math.round(fighter.level * 5);
+    Math.round(fighter.hp) +
+    Math.round(fighter.stamina) +
+    Math.round(fighter.dmg * 2) +
+    Math.round(fighter.level * 5);
 
   return {
     uid: fighter.uid,
@@ -497,10 +503,10 @@ function estimateWeaponStaminaCost(weapon) {
   if (!weapon) return 5;
 
   const dmg =
-      (weapon.battleDamageBonus ?? 0) ||
-      (weapon.weaponDamage ?? 0) ||
-      (weapon.dmgBonus ?? 0) ||
-      0;
+    (weapon.battleDamageBonus ?? 0) ||
+    (weapon.weaponDamage ?? 0) ||
+    (weapon.dmgBonus ?? 0) ||
+    0;
 
   if (dmg >= 12) return 15;
   if (dmg >= 7) return 10;
@@ -514,10 +520,10 @@ function estimateWeaponStaminaCost(weapon) {
 function _renderIdle(container, alien, uid, energy, trainingActive, onBack, onRefresh) {
   const blocked = energy <= 0 || trainingActive;
   const blockMsg = trainingActive
-      ? "Probíhá trénink — souboj není dostupný."
-      : energy <= 0
-          ? "Nemáš energii — počkej na obnovu."
-          : "";
+    ? "Probíhá trénink — souboj není dostupný."
+    : energy <= 0
+      ? "Nemáš energii — počkej na obnovu."
+      : "";
 
   container.innerHTML = `
     <div class="dash-header">
@@ -755,11 +761,11 @@ async function _renderReplay(container, alien, uid, result, prevEnergy, onBack, 
       margin-bottom:18px;
     ">
       ${_htmlReplayCard(
-      "Tvůj ufoun",
-      replay.attackerSummary.uid === uid ? result.updatedAlien : result.opponent.data,
-      myState,
-      replay.attackerSummary.uid === uid ? "attacker" : "defender"
-  )}
+        "Tvůj ufoun",
+        replay.attackerSummary.uid === uid ? result.updatedAlien : result.opponent.data,
+        myState,
+        replay.attackerSummary.uid === uid ? "attacker" : "defender"
+      )}
       <div style="
         display:flex;
         align-items:center;
@@ -782,11 +788,11 @@ async function _renderReplay(container, alien, uid, result, prevEnergy, onBack, 
         ">VS</div>
       </div>
       ${_htmlReplayCard(
-      "Soupeř",
-      replay.attackerSummary.uid === uid ? result.opponent.data : result.updatedAlien,
-      enemyState,
-      replay.attackerSummary.uid === uid ? "defender" : "attacker"
-  )}
+        "Soupeř",
+        replay.attackerSummary.uid === uid ? result.opponent.data : result.updatedAlien,
+        enemyState,
+        replay.attackerSummary.uid === uid ? "defender" : "attacker"
+      )}
     </div>
 
     <div class="card">
@@ -914,11 +920,11 @@ async function _renderHistory(container, uid, alien, energy, trainingActive, onB
 
       <div class="card">
         ${history.length ? history.map((row) => {
-      const b = row.data ?? {};
-      const dateText = formatDate(b.createdAt);
-      const resultText = b.result === "win" ? "Výhra" : "Prohra";
+          const b = row.data ?? {};
+          const dateText = formatDate(b.createdAt);
+          const resultText = b.result === "win" ? "Výhra" : "Prohra";
 
-      return `
+          return `
             <div style="
               padding:12px 0;
               border-bottom:1px solid rgba(255,255,255,.08);
@@ -938,7 +944,7 @@ async function _renderHistory(container, uid, alien, energy, trainingActive, onB
               </div>
             </div>
           `;
-    }).join("") : `
+        }).join("") : `
           <p style="font-size:14px;color:#c4b5d4;">Zatím tu žádné souboje nejsou.</p>
         `}
       </div>
@@ -1168,13 +1174,13 @@ function getDisplayStats(alien, equippedItems = null) {
 
 function getAvatarUrl(alien) {
   return (
-      alien.avatarUrl ||
-      alien.avatar ||
-      alien.photoURL ||
-      alien.photoUrl ||
-      alien.imageUrl ||
-      alien.img ||
-      "/icons/ufo.png"
+    alien.avatarUrl ||
+    alien.avatar ||
+    alien.photoURL ||
+    alien.photoUrl ||
+    alien.imageUrl ||
+    alien.img ||
+    "/icons/ufo.png"
   );
 }
 
@@ -1245,11 +1251,11 @@ function clamp(value, min, max) {
 
 function _esc(value) {
   return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function _escAttr(value) {

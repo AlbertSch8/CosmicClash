@@ -1,4 +1,4 @@
-﻿import { db } from "./firebase.js";
+import { db } from "./firebase.js";
 import {
     collection,
     query,
@@ -234,7 +234,7 @@ function renderSlotCard(label, item, icon) {
             ${esc(item.name ?? "Neznámý item")}
           </div>
           <div style="font-size:12px;color:#c4b5d4;margin-top:4px;">
-            +${item.hpBonus ?? 0} HP · +${item.dmgBonus ?? 0} DMG · +${item.staminaBonus ?? 0} STA
+            +${item.hpBonus ?? 0} HP · +${item.dmgBonus ?? 0} DMG · ${item.type === "weapon" ? `${item.staminaBonus ?? 0} STA / útok` : `+${item.staminaBonus ?? 0} STA`}
           </div>
         </div>
       </div>
@@ -288,7 +288,7 @@ function renderInventoryItem(item, alien) {
           <div style="font-size:13px;color:#c4b5d4;line-height:1.5;">
             +${item.hpBonus ?? 0} HP<br>
             +${item.dmgBonus ?? 0} DMG<br>
-            +${item.staminaBonus ?? 0} Stamina
+            ${item.type === "weapon" ? `${item.staminaBonus ?? 0} Stamina / útok` : `+${item.staminaBonus ?? 0} Stamina`}
           </div>
         </div>
 
