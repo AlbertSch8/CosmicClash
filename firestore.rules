@@ -67,6 +67,23 @@ service cloud.firestore {
       allow read:  if request.auth != null;
       allow write: if false;
     }
+        // ── Inventář hráče ───────────────────────────────────────────────────
+    // Každý item v inventáři patří jednomu hráči.
+    // get:    Povolen pro přihlášeného hráče kvůli kontrole duplicity v transakci.
+    // list:   Hráč smí listovat pouze své vlastní itemy.
+    // create: Hráč smí vytvořit pouze svůj vlastní item v inventáři.
+    // update/delete: Z klienta zakázáno.
+    match /inventory/{inventoryId} {
+      allow get: if request.auth != null;
+
+      allow list: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
+
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if false;
+    }
 
     // ── Výchozí: vše ostatní zakázáno ───────────────────────────────────
     match /{document=**} {

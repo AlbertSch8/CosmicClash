@@ -1,5 +1,5 @@
 ﻿/**
- * UFO: Cosmic Clash — Shop systém (Krok 5, část 1)
+ * UFO: Cosmic Clash — Shop systém
  *
  * Co umí:
  *  1. Načíst katalog itemů z kolekce `items`
@@ -21,6 +21,7 @@ import {
     Timestamp,
 } from "firebase/firestore";
 
+
 // ─────────────────────────────────────────────
 //  NAČTENÍ ITEMŮ
 // ─────────────────────────────────────────────
@@ -40,6 +41,28 @@ async function loadShopItems() {
     }));
 }
 
+
+// ─────────────────────────────────────────────
+//  NAČTENÍ INVENTÁŘE HRÁČE
+// ─────────────────────────────────────────────
+
+async function loadOwnedItemIds(userId) {
+    const q = query(
+        collection(db, "inventory"),
+        where("userId", "==", userId)
+    );
+
+    const snap = await getDocs(q);
+
+    return new Set(
+        snap.docs.map((d) => {
+            const data = d.data();
+            return data.itemId;
+        })
+    );
+}
+
+
 // ─────────────────────────────────────────────
 //  NÁKUP ITEMU
 // ─────────────────────────────────────────────
@@ -49,17 +72,21 @@ async function buyItem(userId, item) {
     const inventoryRef = doc(db, "inventory", `${userId}_${item.id}`);
 
     await runTransaction(db, async (transaction) => {
+
         const alienSnap = await transaction.get(alienRef);
+
         if (!alienSnap.exists()) {
             throw new Error("Profil hráče nebyl nalezen.");
         }
 
         const inventorySnap = await transaction.get(inventoryRef);
+
         if (inventorySnap.exists()) {
             throw new Error("Tento item už vlastníš.");
         }
 
         const alien = alienSnap.data();
+
         const starCoins = alien.starCoins ?? 0;
         const galacticGems = alien.galacticGems ?? 0;
 
@@ -96,11 +123,13 @@ async function buyItem(userId, item) {
     });
 }
 
+
 // ─────────────────────────────────────────────
 //  RENDER SHOPU
 // ─────────────────────────────────────────────
 
 export async function renderShopScreen(root, alien, userId, onBack, onRefresh) {
+
     if (!root) return;
 
     root.innerHTML = `
@@ -146,54 +175,68 @@ export async function renderShopScreen(root, alien, userId, onBack, onRefresh) {
     const itemsWrap = document.getElementById("shop-items");
 
     try {
-        const items = await loadShopItems();
 
-        if (!items.length) {
-            itemsWrap.innerHTML = `
-        <p style="font-size:14px; color:#c4b5d4;">
-          Obchod je zatím prázdný. Nejprve přidej itemy do kolekce <strong>items</strong> ve Firebase.
-        </p>
-      `;
-            return;
-        }
+        const [items, ownedItemIds] = await Promise.all([
+            loadShopItems(),
+            loadOwnedItemIds(userId),
+        ]);
 
-        itemsWrap.innerHTML = items.map((item) => renderItemCard(item)).join("");
+        itemsWrap.innerHTML = items
+            .map((item) => renderItemCard(item, ownedItemIds.has(item.id)))
+            .join("");
 
         items.forEach((item) => {
+
+            const isOwned = ownedItemIds.has(item.id);
+
             const btn = document.getElementById(`buy-${item.id}`);
 
-            btn?.addEventListener("click", async () => {
+            if (!btn || isOwned) return;
+
+            btn.addEventListener("click", async () => {
+
                 btn.disabled = true;
                 btn.textContent = "Nakupuji...";
 
                 try {
+
                     await buyItem(userId, item);
+
                     showToast(`✅ Koupil jsi item: ${item.name}`);
+
                     await onRefresh();
+
                 } catch (err) {
+
                     showToast(`❌ ${err.message ?? "Nákup selhal."}`);
+
                     btn.disabled = false;
                     btn.textContent = "Koupit";
                 }
             });
         });
+
     } catch (err) {
+
         itemsWrap.innerHTML = `
-      <p style="font-size:14px; color:#fca5a5;">
-        Nepodařilo se načíst obchod: ${esc(err.message ?? "Neznámá chyba")}
-      </p>
-    `;
+        <p style="font-size:14px; color:#fca5a5;">
+          Nepodařilo se načíst obchod: ${esc(err.message ?? "Neznámá chyba")}
+        </p>
+      `;
     }
 }
+
 
 // ─────────────────────────────────────────────
 //  HTML ITEM KARTY
 // ─────────────────────────────────────────────
 
-function renderItemCard(item) {
+function renderItemCard(item, isOwned = false) {
+
     const hpBonus = item.hpBonus ?? 0;
     const dmgBonus = item.dmgBonus ?? 0;
     const staminaBonus = item.staminaBonus ?? 0;
+
     const priceCoins = item.priceCoins ?? 0;
     const priceGems = item.priceGems ?? 0;
 
@@ -205,33 +248,47 @@ function renderItemCard(item) {
       padding: 14px;
       margin-bottom: 12px;
     ">
+
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+
         <div>
+
           <div style="font-size:16px;font-weight:700;color:#e8d5ff;margin-bottom:4px;">
             ${esc(item.name ?? "Neznámý item")}
           </div>
+
           <div style="font-size:12px;color:#a855f7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">
             ${esc(item.type ?? "unknown")} • ${esc(item.rarity ?? "common")}
           </div>
+
           <div style="font-size:13px;color:#c4b5d4;line-height:1.5;">
             +${hpBonus} HP<br>
             +${dmgBonus} DMG<br>
             +${staminaBonus} Stamina
           </div>
+
         </div>
 
         <div style="min-width:120px;text-align:right;">
           <div style="font-size:13px;color:#facc15;font-weight:700;">✦ ${priceCoins}</div>
           <div style="font-size:13px;color:#7dd3fc;font-weight:700;">💎 ${priceGems}</div>
         </div>
+
       </div>
 
-      <button class="btn btn-primary" id="buy-${item.id}" style="margin-top:14px;">
-        Koupit
+      <button
+        class="btn ${isOwned ? "btn-secondary" : "btn-primary"}"
+        id="buy-${item.id}"
+        style="margin-top:14px;"
+        ${isOwned ? "disabled" : ""}
+      >
+        ${isOwned ? "Vyprodáno" : "Koupit"}
       </button>
+
     </div>
   `;
 }
+
 
 // ─────────────────────────────────────────────
 //  UTILITY
@@ -246,11 +303,14 @@ function esc(str) {
 }
 
 function showToast(msg) {
+
     const old = document.getElementById("cc-toast");
     if (old) old.remove();
 
     const el = document.createElement("div");
+
     el.id = "cc-toast";
+
     el.style.cssText = `
     position:fixed;
     bottom:24px;
@@ -267,7 +327,9 @@ function showToast(msg) {
     max-width:320px;
     text-align:center;
   `;
+
     el.textContent = msg;
+
     document.body.appendChild(el);
 
     setTimeout(() => el.remove(), 3200);
