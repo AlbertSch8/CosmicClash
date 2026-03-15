@@ -32,10 +32,6 @@ import { loadEquippedItems, computeEnergyState } from "./dashboard.js";
 const LEVEL_RANGE = 2;
 const MATCHMAKING_POOL = 30;
 const OPPONENT_COUNT = 3;
-const TROPHIES_WIN_MIN = 25;
-const TROPHIES_WIN_MAX = 30;
-const TROPHIES_LOSS_MIN = 10;
-const TROPHIES_LOSS_MAX = 15;
 
 const WIN_REWARDS = {
   xp: 40,
@@ -45,6 +41,10 @@ const WIN_REWARDS = {
 };
 
 const LOSS_ENERGY_PENALTY = 1;
+const TROPHIES_WIN_MIN = 25;
+const TROPHIES_WIN_MAX = 30;
+const TROPHIES_LOSS_MIN = 10;
+const TROPHIES_LOSS_MAX = 15;
 
 const BASE_STAMINA_REGEN = 5;
 const MAX_BATTLE_ROUNDS = 60;
@@ -1194,6 +1194,7 @@ function _formatRewards(rewards, won) {
 
   return parts.length ? parts.join(" · ") : (won ? "Výhra bez dropu navíc." : "Žádná extra penalizace.");
 }
+
 function randomInt(min, max) {
   const low = Math.ceil(min);
   const high = Math.floor(max);

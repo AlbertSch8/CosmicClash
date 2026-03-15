@@ -311,6 +311,7 @@ function renderDashboard(alien, user, equippedItems) {
       <div class="stat-row"><span class="stat-label">Jméno</span><span class="stat-value">${esc(alien.name)}</span></div>
       <div class="stat-row"><span class="stat-label">Původ / Typ</span><span class="stat-value">${esc(origin)}</span></div>
       <div class="stat-row"><span class="stat-label">Level</span><span class="stat-value">${alien.level ?? 1}</span></div>
+      <div class="stat-row"><span class="stat-label">Galaxy Trophies</span><span class="stat-value">🏆 ${Math.max(0, alien.galaxyTrophies ?? 0)}</span></div>
 
       <div class="bar-block">
         <div class="bar-header">

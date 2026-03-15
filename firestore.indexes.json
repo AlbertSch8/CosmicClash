@@ -4,7 +4,7 @@
       "collectionGroup": "trainingSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "userId",    "order": "ASCENDING"  },
         { "fieldPath": "startTime", "order": "DESCENDING" }
       ]
     },
@@ -12,25 +12,24 @@
       "collectionGroup": "battles",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "attackerId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        { "fieldPath": "attackerId", "order": "ASCENDING"  },
+        { "fieldPath": "createdAt",  "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "aliens",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "galaxyTrophies", "order": "DESCENDING" },
         { "fieldPath": "level", "order": "DESCENDING" },
-        { "fieldPath": "xp", "order": "DESCENDING" }
+        { "fieldPath": "xp",    "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "items",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isActive", "order": "ASCENDING" },
-        { "fieldPath": "sortOrder", "order": "ASCENDING" }
+        { "fieldPath": "isActive",  "order": "ASCENDING"  },
+        { "fieldPath": "sortOrder", "order": "ASCENDING"  }
       ]
     }
   ],

@@ -91,6 +91,7 @@ async function handleLogin() {
 
     try {
         await signInWithEmailAndPassword(auth, email, pass);
+        // onAuthStateChanged níže detekuje přihlášení a přesměruje
         showStatus("login-status", "success", "✓ Přihlášení úspěšné! Přesměrovávám...");
     } catch (e) {
         console.error("[CosmicClash/auth] Login error:", e);
@@ -103,6 +104,13 @@ async function handleLogin() {
 //  REGISTRACE
 // ─────────────────────────────────────────────
 
+/**
+ * Příznak: právě probíhá registrace.
+ *
+ * KRITICKÉ: onAuthStateChanged se spustí ihned po createUserWithEmailAndPassword
+ * (ještě PŘED zápisem do Firestore). Tento příznak zabraňuje předčasnému
+ * přesměrování na dashboard dřív, než jsou data v DB.
+ */
 let isRegistering = false;
 
 async function handleRegister() {
@@ -112,6 +120,7 @@ async function handleRegister() {
 
     clearStatuses();
 
+    // Validace formuláře
     if (!name || !email || !pass) {
         showStatus("register-status", "error", "Vyplň všechna pole.");
         return;
@@ -122,45 +131,57 @@ async function handleRegister() {
     }
 
     setLoading("btn-register", true);
-    isRegistering = true;
+    isRegistering = true; // Blokujeme onAuthStateChanged
 
     try {
+        // ── Krok 1: Vytvoření účtu ve Firebase Auth ────────────────────────
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
         const uid  = cred.user.uid;
         const now  = Timestamp.now();
 
         showStatus("register-status", "success", "✓ Účet vytvořen. Zapisuji profil...");
 
+        // ── Krok 2: Zápis veřejného profilu do kolekce `users` ────────────
+        // Obsahuje pouze metadata — bez herních dat.
         await setDoc(doc(db, "users", uid), {
             userId:    uid,
             email:     email,
             createdAt: now,
         });
 
+        // ── Krok 3: Zápis herního profilu do kolekce `aliens` ─────────────
+        // Všechna povinná herní pole jsou explicitně nastavena.
+        // Teprve po úspěchu tohoto zápisu přesměrujeme na dashboard.
         await setDoc(doc(db, "aliens", uid), {
+            // Identifikace
             userId:       uid,
             name:         name,
             email:        email,
-            type:         "Neznámý původ",
+            type:         "Neznámý původ", // hráč si změní v profilu (budoucí krok)
 
+            // Postup
             level:        1,
             xp:           0,
 
+            // Bojové statistiky
             hp:           100,
             dmg:          10,
             stamina:      100,
 
+            // Energie (systém obnovy z Kroku 2)
             energy:           5,
             energyUpdatedAt:  now,
 
+            // Měna
             starCoins:    50,
             galacticGems: 0,
-
             galaxyTrophies: 0,
 
+            // Metadata
             createdAt:    now,
         });
 
+        // ── Krok 4: Oba zápisy proběhly → přesměrujeme na dashboard ───────
         showStatus("register-status", "success", "✓ Profil vytvořen! Přesměrovávám...");
         isRegistering = false;
 
@@ -169,6 +190,7 @@ async function handleRegister() {
         }, 800);
 
     } catch (e) {
+        // Rozlišíme chyby Auth vs Firestore pro lepší diagnostiku
         const isAuthError = e.code?.startsWith("auth/");
         console.error(
             isAuthError
@@ -201,7 +223,7 @@ function switchTab(tab) {
             (tab === "login" && i === 0) || (tab === "register" && i === 1)
         );
     });
-    document.getElementById("form-login").classList.toggle("active", tab === "login");
+    document.getElementById("form-login").classList.toggle("active",    tab === "login");
     document.getElementById("form-register").classList.toggle("active", tab === "register");
     clearStatuses();
 }
@@ -214,9 +236,9 @@ function createStars() {
     const starsEl = document.getElementById("stars");
     if (!starsEl) return;
     for (let i = 0; i < 120; i++) {
-        const s = document.createElement("div");
+        const s    = document.createElement("div");
         s.className = "star-dot";
-        const size = Math.random() * 2.2 + 0.5;
+        const size  = Math.random() * 2.2 + 0.5;
         s.style.cssText = `
             width:${size}px; height:${size}px;
             top:${Math.random() * 100}%; left:${Math.random() * 100}%;
@@ -233,17 +255,44 @@ function createStars() {
 //  GLOBÁLNÍ EXPOZICE PRO INLINE HANDLERY V HTML
 // ─────────────────────────────────────────────
 
-window.switchTab = switchTab;
+window.switchTab       = switchTab;
+window.handleLogin     = handleLogin;
+window.handleRegister  = handleRegister;
 
-document.addEventListener("DOMContentLoaded", () => {
-    createStars();
+// ─────────────────────────────────────────────
+//  KLÁVESOVÁ ZKRATKA ENTER
+// ─────────────────────────────────────────────
 
-    document.getElementById("btn-login")?.addEventListener("click", handleLogin);
-    document.getElementById("btn-register")?.addEventListener("click", handleRegister);
-
-    onAuthStateChanged(auth, (user) => {
-        if (!user) return;
-        if (isRegistering) return;
-        window.location.href = "/dashboard.html";
-    });
+document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    if (document.getElementById("form-login").classList.contains("active")) {
+        handleLogin();
+    } else {
+        handleRegister();
+    }
 });
+
+// ─────────────────────────────────────────────
+//  AUTH STATE LISTENER — pouze pro přihlášení
+// ─────────────────────────────────────────────
+
+/**
+ * Přesměruje na dashboard POUZE pokud:
+ *  a) uživatel je přihlášen, A ZÁROVEŇ
+ *  b) NEPROBÍHÁ registrace (isRegistering === false)
+ *
+ * Bez podmínky (b) by listener přesměroval okamžitě po createUser,
+ * ještě před zápisem do Firestore → dashboard by zobrazil chybu
+ * "Profil ufouna nebyl nalezen."
+ */
+onAuthStateChanged(auth, (user) => {
+    if (user && !isRegistering) {
+        window.location.href = "/dashboard.html";
+    }
+});
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+
+createStars();
