@@ -1,434 +1,407 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>CosmicClash — Přihlášení</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Syne:wght@300;400;600&display=swap"
-          rel="stylesheet"/>
-    <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CosmicClash — Přihlášení</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Syne:wght@300;400;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    
+    :root {
+      --void: #03020a;
+      --deep: #090618;
+      --nebula: #1a0a2e;
+      --accent: #7b2fff;
+      --glow: #a855f7;
+      --star: #e8d5ff;
+      --danger: #ff3b6e;
+      --success: #00e5a0;
+      --text: #c4b5d4;
 
+      --d: 3s;
+      --min: 0.1;
+      --max: 0.9;
+    }
 
-        :root {
-            --void: #03020a;
-            --deep: #090618;
-            --nebula: #1a0a2e;
-            --accent: #7b2fff;
-            --glow: #a855f7;
-            --star: #e8d5ff;
-            --danger: #ff3b6e;
-            --success: #00e5a0;
-            --text: #c4b5d4;
+    body {
+      background: var(--void);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      overflow: hidden;
+      color: var(--text);
+    }
 
-            --d: 3s;
-            --min: 0.1;
-            --max: 0.9;
-        }
+    .space-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+              radial-gradient(ellipse at 20% 50%, #1a0a2e 0%, #03020a 60%),
+              radial-gradient(ellipse at 80% 20%, #0d0527 0%, transparent 50%);
+    }
 
-        body {
-            background: var(--void);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Syne', sans-serif;
-            overflow: hidden;
-            color: var(--text);
-        }
+    .nebula-blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.25;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
 
-        .space-bg {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background: radial-gradient(ellipse at 20% 50%, #1a0a2e 0%, #03020a 60%),
-            radial-gradient(ellipse at 80% 20%, #0d0527 0%, transparent 50%);
-        }
+    .nebula-blob:nth-child(1) {
+      width: 500px;
+      height: 400px;
+      top: -10%;
+      left: -5%;
+      background: #5b21b6;
+      animation-delay: 0s;
+    }
 
-        .nebula-blob {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.25;
-            animation: drift 12s ease-in-out infinite alternate;
-        }
+    .nebula-blob:nth-child(2) {
+      width: 350px;
+      height: 300px;
+      bottom: -5%;
+      right: 5%;
+      background: #2563eb;
+      animation-delay: -4s;
+    }
 
-        .nebula-blob:nth-child(1) {
-            width: 500px;
-            height: 400px;
-            top: -10%;
-            left: -5%;
-            background: #5b21b6;
-            animation-delay: 0s;
-        }
+    .nebula-blob:nth-child(3) {
+      width: 250px;
+      height: 250px;
+      top: 30%;
+      right: 20%;
+      background: #7c3aed;
+      animation-delay: -8s;
+    }
 
-        .nebula-blob:nth-child(2) {
-            width: 350px;
-            height: 300px;
-            bottom: -5%;
-            right: 5%;
-            background: #2563eb;
-            animation-delay: -4s;
-        }
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to { transform: translate(30px, -20px) scale(1.05); }
+    }
 
-        .nebula-blob:nth-child(3) {
-            width: 250px;
-            height: 250px;
-            top: 30%;
-            right: 20%;
-            background: #7c3aed;
-            animation-delay: -8s;
-        }
+    .stars {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
 
-        @keyframes drift {
-            from {
-                transform: translate(0, 0) scale(1);
-            }
-            to {
-                transform: translate(30px, -20px) scale(1.05);
-            }
-        }
+    .star-dot {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle var(--d, 3s) ease-in-out infinite alternate;
+    }
 
-        .stars {
-            position: fixed;
-            inset: 0;
-            z-index: 1;
-        }
+    @keyframes twinkle {
+      from { opacity: var(--min, 0.1); transform: scale(1); }
+      to { opacity: var(--max, 0.9); transform: scale(1.4); }
+    }
 
-        .star-dot {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle var(--d, 3s) ease-in-out infinite alternate;
-        }
+    .card {
+      position: relative;
+      z-index: 10;
+      width: 420px;
+      max-width: calc(100vw - 32px);
+      padding: 48px 44px;
+      background: rgba(15, 8, 30, 0.85);
+      border: 1px solid rgba(123, 47, 255, 0.3);
+      border-radius: 20px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 0 60px rgba(123, 47, 255, 0.15), 0 0 0 1px rgba(255,255,255,0.04);
+      animation: cardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
 
-        @keyframes twinkle {
-            from {
-                opacity: var(--min, 0.1);
-                transform: scale(1);
-            }
-            to {
-                opacity: var(--max, 0.9);
-                transform: scale(1.4);
-            }
-        }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(32px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
-        .card {
-            position: relative;
-            z-index: 10;
-            width: 420px;
-            max-width: calc(100vw - 32px);
-            padding: 48px 44px;
-            background: rgba(15, 8, 30, 0.85);
-            border: 1px solid rgba(123, 47, 255, 0.3);
-            border-radius: 20px;
-            backdrop-filter: blur(24px);
-            box-shadow: 0 0 60px rgba(123, 47, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.04);
-            animation: cardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
+    .logo {
+      text-align: center;
+      margin-bottom: 36px;
+    }
 
-        @keyframes cardIn {
-            from {
-                opacity: 0;
-                transform: translateY(32px) scale(0.97);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
+    .logo-img-saturn {
+      width: 64px; height: 64px;
+      object-fit: contain; display: block;
+      margin: 0 auto 8px;
+      animation: orbit 6s linear infinite;
+      filter: drop-shadow(0 0 12px rgba(123,47,255,.5));
+    }
+    .logo-icon {
+      font-size: 40px;
+      display: block;
+      margin-bottom: 8px;
+      animation: orbit 6s linear infinite;
+    }
 
-        .logo {
-            text-align: center;
-            margin-bottom: 36px;
-        }
+    @keyframes orbit {
+      0% { text-shadow: 0 0 20px #7b2fff; }
+      50% { text-shadow: 0 0 40px #a855f7, 0 0 80px #7b2fff; }
+      100% { text-shadow: 0 0 20px #7b2fff; }
+    }
 
-        .logo-icon {
-            font-size: 40px;
-            display: block;
-            margin-bottom: 8px;
-            animation: orbit 6s linear infinite;
-        }
+    .logo h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      color: var(--star);
+      text-transform: uppercase;
+    }
 
-        @keyframes orbit {
-            0% {
-                text-shadow: 0 0 20px #7b2fff;
-            }
-            50% {
-                text-shadow: 0 0 40px #a855f7, 0 0 80px #7b2fff;
-            }
-            100% {
-                text-shadow: 0 0 20px #7b2fff;
-            }
-        }
+    .logo p {
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      color: var(--glow);
+      text-transform: uppercase;
+      margin-top: 4px;
+      opacity: 0.7;
+    }
 
-        .logo h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 22px;
-            font-weight: 900;
-            letter-spacing: 0.15em;
-            color: var(--star);
-            text-transform: uppercase;
-        }
+    .tabs {
+      display: flex;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
 
-        .logo p {
-            font-size: 11px;
-            letter-spacing: 0.3em;
-            color: var(--glow);
-            text-transform: uppercase;
-            margin-top: 4px;
-            opacity: 0.7;
-        }
+    .tab-btn {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(196, 181, 212, 0.5);
+      border-radius: 7px;
+      transition: all 0.25s;
+    }
 
-        .tabs {
-            display: flex;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 10px;
-            padding: 4px;
-            margin-bottom: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #7b2fff, #5b1cc0);
+      color: white;
+      box-shadow: 0 2px 16px rgba(123, 47, 255, 0.4);
+    }
 
-        .tab-btn {
-            flex: 1;
-            padding: 9px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: rgba(196, 181, 212, 0.5);
-            border-radius: 7px;
-            transition: all 0.25s;
-        }
+    .form {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
 
-        .tab-btn.active {
-            background: linear-gradient(135deg, #7b2fff, #5b1cc0);
-            color: white;
-            box-shadow: 0 2px 16px rgba(123, 47, 255, 0.4);
-        }
+    .form.active {
+      display: flex;
+      animation: fadeUp 0.3s ease both;
+    }
 
-        .form {
-            display: none;
-            flex-direction: column;
-            gap: 16px;
-        }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-        .form.active {
-            display: flex;
-            animation: fadeUp 0.3s ease both;
-        }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
 
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--glow);
+      font-weight: 600;
+    }
 
-        .field {
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-        }
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(123, 47, 255, 0.25);
+      border-radius: 9px;
+      padding: 13px 16px;
+      color: var(--star);
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
 
-        label {
-            font-size: 10px;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--glow);
-            font-weight: 600;
-        }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(123, 47, 255, 0.15);
+    }
 
-        input[type="email"],
-        input[type="password"],
-        input[type="text"] {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(123, 47, 255, 0.25);
-            border-radius: 9px;
-            padding: 13px 16px;
-            color: var(--star);
-            font-family: 'Syne', sans-serif;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
+    input::placeholder {
+      color: rgba(196, 181, 212, 0.3);
+    }
 
-        input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(123, 47, 255, 0.15);
-        }
+    .btn-submit {
+      margin-top: 6px;
+      padding: 14px;
+      background: linear-gradient(135deg, #7b2fff 0%, #4f0fbb 100%);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 24px rgba(123, 47, 255, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
 
-        input::placeholder {
-            color: rgba(196, 181, 212, 0.3);
-        }
+    .btn-submit::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
 
-        .btn-submit {
-            margin-top: 6px;
-            padding: 14px;
-            background: linear-gradient(135deg, #7b2fff 0%, #4f0fbb 100%);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 24px rgba(123, 47, 255, 0.4);
-            position: relative;
-            overflow: hidden;
-        }
+    .btn-submit:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 32px rgba(123, 47, 255, 0.55);
+    }
 
-        .btn-submit::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent);
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
+    .btn-submit:hover::after {
+      opacity: 1;
+    }
 
-        .btn-submit:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 32px rgba(123, 47, 255, 0.55);
-        }
+    .btn-submit:active {
+      transform: translateY(0);
+    }
 
-        .btn-submit:hover::after {
-            opacity: 1;
-        }
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
 
-        .btn-submit:active {
-            transform: translateY(0);
-        }
+    .status {
+      font-size: 13px;
+      border-radius: 8px;
+      padding: 11px 14px;
+      display: none;
+      line-height: 1.4;
+    }
 
-        .btn-submit:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
+    .status.error {
+      display: block;
+      background: rgba(255, 59, 110, 0.1);
+      border: 1px solid rgba(255,59,110,0.3);
+      color: #ff6b8a;
+    }
 
-        .status {
-            font-size: 13px;
-            border-radius: 8px;
-            padding: 11px 14px;
-            display: none;
-            line-height: 1.4;
-        }
+    .status.success {
+      display: block;
+      background: rgba(0, 229, 160, 0.08);
+      border: 1px solid rgba(0,229,160,0.25);
+      color: var(--success);
+    }
 
-        .status.error {
-            display: block;
-            background: rgba(255, 59, 110, 0.1);
-            border: 1px solid rgba(255, 59, 110, 0.3);
-            color: #ff6b8a;
-        }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
 
-        .status.success {
-            display: block;
-            background: rgba(0, 229, 160, 0.08);
-            border: 1px solid rgba(0, 229, 160, 0.25);
-            color: var(--success);
-        }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
 
-        .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            vertical-align: middle;
-            margin-right: 6px;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        @media (max-width: 520px) {
-            .card {
-                padding: 28px 20px;
-            }
-        }
-    </style>
+    @media (max-width: 520px) {
+      .card {
+        padding: 28px 20px;
+      }
+    }
+  </style>
 </head>
 <body>
 <div class="space-bg">
-    <div class="nebula-blob"></div>
-    <div class="nebula-blob"></div>
-    <div class="nebula-blob"></div>
+  <div class="nebula-blob"></div>
+  <div class="nebula-blob"></div>
+  <div class="nebula-blob"></div>
 </div>
 
 <div class="stars" id="stars"></div>
 
 <div class="card">
-    <div class="logo">
-        <span class="logo-icon">🪐</span>
-        <h1>CosmicClash</h1>
-        <p>Interstellar Battle Arena</p>
+  <div class="logo">
+    <img src="/icons/saturn.png" alt="Saturn" class="logo-img-saturn" />
+    <h1>CosmicClash</h1>
+    <p>Interstellar Battle Arena</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('login')">Přihlásit se</button>
+    <button class="tab-btn" onclick="switchTab('register')">Registrace</button>
+  </div>
+
+  <div class="form active" id="form-login">
+    <div class="status" id="login-status"></div>
+
+    <div class="field">
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" placeholder="pilot@galaxy.com" autocomplete="email" />
     </div>
 
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('login')">Přihlásit se</button>
-        <button class="tab-btn" onclick="switchTab('register')">Registrace</button>
+    <div class="field">
+      <label for="login-password">Heslo</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
     </div>
 
-    <div class="form active" id="form-login">
-        <div class="status" id="login-status"></div>
+    <button class="btn-submit" id="btn-login" onclick="handleLogin()">
+      Vstoupit do arény
+    </button>
+  </div>
 
-        <div class="field">
-            <label for="login-email">Email</label>
-            <input type="email" id="login-email" placeholder="pilot@galaxy.com" autocomplete="email"/>
-        </div>
+  <div class="form" id="form-register">
+    <div class="status" id="register-status"></div>
 
-        <div class="field">
-            <label for="login-password">Heslo</label>
-            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
-        </div>
-
-        <button class="btn-submit" id="btn-login" onclick="handleLogin()">
-            Vstoupit do arény
-        </button>
+    <div class="field">
+      <label for="register-name">Jméno pilota</label>
+      <input type="text" id="register-name" placeholder="StarLord42" autocomplete="username" />
     </div>
 
-    <div class="form" id="form-register">
-        <div class="status" id="register-status"></div>
-
-        <div class="field">
-            <label for="register-name">Jméno pilota</label>
-            <input type="text" id="register-name" placeholder="StarLord42" autocomplete="username"/>
-        </div>
-
-        <div class="field">
-            <label for="register-email">Email</label>
-            <input type="email" id="register-email" placeholder="pilot@galaxy.com" autocomplete="email"/>
-        </div>
-
-        <div class="field">
-            <label for="register-password">Heslo</label>
-            <input type="password" id="register-password" placeholder="min. 6 znaků" autocomplete="new-password"/>
-        </div>
-
-        <button class="btn-submit" id="btn-register" onclick="handleRegister()">
-            Zahájit misi
-        </button>
+    <div class="field">
+      <label for="register-email">Email</label>
+      <input type="email" id="register-email" placeholder="pilot@galaxy.com" autocomplete="email" />
     </div>
+
+    <div class="field">
+      <label for="register-password">Heslo</label>
+      <input type="password" id="register-password" placeholder="min. 6 znaků" autocomplete="new-password" />
+    </div>
+
+    <button class="btn-submit" id="btn-register" onclick="handleRegister()">
+      Zahájit misi
+    </button>
+  </div>
 </div>
 
 <script type="module" src="/src/auth.js"></script>

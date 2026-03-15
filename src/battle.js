@@ -13,21 +13,22 @@
  *  8. Renderování celé bojové obrazovky do předaného DOM elementu
  */
 
-import {db} from "./firebase.js";
+import { db } from "./firebase.js";
 import {
-    collection,
-    doc,
-    addDoc,
-    getDoc,
-    getDocs,
-    updateDoc,
-    query,
-    where,
-    orderBy,
-    limit,
-    Timestamp,
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  Timestamp,
 } from "firebase/firestore";
-import {isTrainingActive} from "./training.js";
+import { isTrainingActive } from "./training.js";
+import { loadEquippedItems } from "./dashboard.js";
 
 // ─────────────────────────────────────────────
 //  KONSTANTY
@@ -41,11 +42,11 @@ const MATCHMAKING_POOL = 10;
 
 /** Odměny za výhru. */
 const WIN_REWARDS = {
-    xp: 40,
-    starCoins: 20,
-    /** Pravděpodobnost dropu Galactic Gem (0–1). */
-    gemChance: 0.15,
-    gemAmount: 1,
+  xp:         40,
+  starCoins:  20,
+  /** Pravděpodobnost dropu Galactic Gem (0–1). */
+  gemChance:  0.15,
+  gemAmount:  1,
 };
 
 /** Ztráta energie při prohře. */
@@ -59,27 +60,30 @@ const LOSS_ENERGY_PENALTY = 1;
  * Vypočítá bojové skóre ufouna dle zadaného vzorce.
  *
  * score = (HP * 0.35) + (DMG * 0.4) + (stamina * 0.15)
- *       + (equipBonus * 0.1)          ← zatím 0, připraveno pro Krok Vybavení
- *       + náhodný faktor (0–10 % ze základu)
+ *       + (equipBonus * 0.1)
+ *       + náhodný faktor ±10 % ze základu
+ *
+ * equipBonus = součet všech bonusů (hpBonus + dmgBonus + staminaBonus)
+ * z vybavené zbraně a brnění. Předáván z loadEquippedItems().
  *
  * Náhodný faktor zajišťuje, že slabší ufoun může občas překvapit —
  * ale statisticky silnější ufoun vyhraje ve většině případů.
  *
  * @param {object} alien       – data ufouna
- * @param {number} equipBonus  – bonus z vybavení (zatím vždy 0)
+ * @param {number} equipBonus  – součet bonusů z vybavení (0 pokud nic není nasazeno)
  * @returns {number} bojové skóre
  */
 export function calcBattleScore(alien, equipBonus = 0) {
-    const hp = alien.hp ?? 100;
-    const dmg = alien.dmg ?? 10;
-    const stamina = alien.stamina ?? 100;
+  const hp      = alien.hp      ?? 100;
+  const dmg     = alien.dmg     ?? 10;
+  const stamina = alien.stamina ?? 100;
 
-    const base = (hp * 0.35) + (dmg * 0.4) + (stamina * 0.15) + (equipBonus * 0.1);
+  const base = (hp * 0.35) + (dmg * 0.4) + (stamina * 0.15) + (equipBonus * 0.1);
 
-    // Náhodný faktor: ±10 % ze základního skóre
-    const randomFactor = base * (Math.random() * 0.2 - 0.1);
+  // Náhodný faktor: ±10 % ze základního skóre
+  const randomFactor = base * (Math.random() * 0.2 - 0.1);
 
-    return base + randomFactor;
+  return base + randomFactor;
 }
 
 // ─────────────────────────────────────────────
@@ -104,30 +108,30 @@ export function calcBattleScore(alien, equipBonus = 0) {
  * @returns {Promise<{id: string, data: object}|null>}
  */
 export async function findOpponent(uid, myLevel) {
-    const minLevel = Math.max(1, myLevel - LEVEL_RANGE);
-    const maxLevel = myLevel + LEVEL_RANGE;
+  const minLevel = Math.max(1, myLevel - LEVEL_RANGE);
+  const maxLevel = myLevel + LEVEL_RANGE;
 
-    // Firestore neumí WHERE level BETWEEN → použijeme >= minLevel a filtrujeme v JS
-    const q = query(
-        collection(db, "aliens"),
-        where("level", ">=", minLevel),
-        orderBy("level", "asc"),
-        limit(MATCHMAKING_POOL)
-    );
+  // Firestore neumí WHERE level BETWEEN → použijeme >= minLevel a filtrujeme v JS
+  const q = query(
+    collection(db, "aliens"),
+    where("level", ">=", minLevel),
+    orderBy("level", "asc"),
+    limit(MATCHMAKING_POOL)
+  );
 
-    const snap = await getDocs(q);
-    if (snap.empty) return null;
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
 
-    // Filtrujeme: vyloučíme sebe a hráče mimo maxLevel
-    const candidates = snap.docs
-        .filter((d) => d.id !== uid && (d.data().level ?? 1) <= maxLevel)
-        .map((d) => ({id: d.id, data: d.data()}));
+  // Filtrujeme: vyloučíme sebe a hráče mimo maxLevel
+  const candidates = snap.docs
+    .filter((d) => d.id !== uid && (d.data().level ?? 1) <= maxLevel)
+    .map((d) => ({ id: d.id, data: d.data() }));
 
-    if (candidates.length === 0) return null;
+  if (candidates.length === 0) return null;
 
-    // Náhodný výběr ze seznamu kandidátů
-    const idx = Math.floor(Math.random() * candidates.length);
-    return candidates[idx];
+  // Náhodný výběr ze seznamu kandidátů
+  const idx = Math.floor(Math.random() * candidates.length);
+  return candidates[idx];
 }
 
 // ─────────────────────────────────────────────
@@ -162,88 +166,97 @@ export async function findOpponent(uid, myLevel) {
  * @property {object} updatedAlien   – aktuální data hráče po souboji
  */
 export async function executeBattle(uid, opponent) {
-    // 1) Načteme aktuální profil hráče přímo z DB (ne ze stavu UI)
-    const alienSnap = await getDoc(doc(db, "aliens", uid));
-    if (!alienSnap.exists()) throw new Error("Profil hráče nebyl nalezen.");
-    const alien = alienSnap.data();
+  // 1) Načteme aktuální profil hráče přímo z DB (ne ze stavu UI)
+  const alienSnap = await getDoc(doc(db, "aliens", uid));
+  if (!alienSnap.exists()) throw new Error("Profil hráče nebyl nalezen.");
+  const alien = alienSnap.data();
 
-    // 2) Ověříme energii
-    const energy = alien.energy ?? 0;
-    if (energy <= 0) {
-        throw new Error("Nemáš žádnou energii. Počkej na obnovu.");
-    }
+  // 2) Ověříme energii
+  const energy = alien.energy ?? 0;
+  if (energy <= 0) {
+    throw new Error("Nemáš žádnou energii. Počkej na obnovu.");
+  }
 
-    // 3) Ověříme, zda neprobíhá trénink
-    const training = await isTrainingActive(uid);
-    if (training) {
-        throw new Error("Nelze bojovat během tréninku.");
-    }
+  // 3) Ověříme, zda neprobíhá trénink
+  const training = await isTrainingActive(uid);
+  if (training) {
+    throw new Error("Nelze bojovat během tréninku.");
+  }
 
-    // 4) Vypočítáme bojová skóre obou hráčů
-    //    equipBonus = 0 → připraveno pro budoucí systém vybavení
-    const myScore = calcBattleScore(alien, 0);
-    const opponentScore = calcBattleScore(opponent.data, 0);
+  // 4) Načteme vybavení obou hráčů paralelně a vypočítáme equipment bonusy
+  //    Bonus = součet hpBonus + dmgBonus + staminaBonus ze zbraně i brnění
+  const [myEquip, opponentEquip] = await Promise.all([
+    loadEquippedItems(alien),
+    loadEquippedItems(opponent.data),
+  ]);
 
-    const won = myScore >= opponentScore;
+  const myEquipBonus       = myEquip.bonusHp       + myEquip.bonusDmg       + myEquip.bonusStamina;
+  const opponentEquipBonus = opponentEquip.bonusHp + opponentEquip.bonusDmg + opponentEquip.bonusStamina;
 
-    // 5) Připravíme aktualizaci hráčova profilu
-    let alienUpdate = {};
-    let rewards = {};
+  // 5) Vypočítáme bojová skóre včetně equipment bonusů
+  const myScore       = calcBattleScore(alien,         myEquipBonus);
+  const opponentScore = calcBattleScore(opponent.data, opponentEquipBonus);
 
-    if (won) {
-        // Výhra: přičteme XP, Star Coins, případně Galactic Gem
-        const gemDrop = Math.random() < WIN_REWARDS.gemChance;
-        const newGems = (alien.galacticGems ?? 0) + (gemDrop ? WIN_REWARDS.gemAmount : 0);
+  const won = myScore >= opponentScore;
 
-        alienUpdate = {
-            xp: (alien.xp ?? 0) + WIN_REWARDS.xp,
-            starCoins: (alien.starCoins ?? 0) + WIN_REWARDS.starCoins,
-            galacticGems: newGems,
-        };
-        rewards = {
-            xp: WIN_REWARDS.xp,
-            starCoins: WIN_REWARDS.starCoins,
-            galacticGems: gemDrop ? WIN_REWARDS.gemAmount : 0,
-        };
-    } else {
-        // Prohra: odečteme 1 energii (min 0)
-        const newEnergy = Math.max(0, energy - LOSS_ENERGY_PENALTY);
-        alienUpdate = {energy: newEnergy};
-        rewards = {energy: -LOSS_ENERGY_PENALTY};
-    }
+  // 6) Připravíme aktualizaci hráčova profilu
+  let alienUpdate = {};
+  let rewards     = {};
 
-    // 6) Zapíšeme odměny / penalizaci do aliens
-    await updateDoc(doc(db, "aliens", uid), alienUpdate);
+  if (won) {
+    // Výhra: přičteme XP, Star Coins, případně Galactic Gem
+    const gemDrop  = Math.random() < WIN_REWARDS.gemChance;
+    const newGems  = (alien.galacticGems ?? 0) + (gemDrop ? WIN_REWARDS.gemAmount : 0);
 
-    // 7) Uložíme výsledek souboje do kolekce battles
-    const battleDoc = {
-        attackerId: uid,
-        defenderId: opponent.id,
-        attackerName: alien.name ?? "?",
-        defenderName: opponent.data.name ?? "?",
-        attackerLevel: alien.level ?? 1,
-        defenderLevel: opponent.data.level ?? 1,
-        myScore: Math.round(myScore),
-        opponentScore: Math.round(opponentScore),
-        result: won ? "win" : "loss",
-        rewards,
-        createdAt: Timestamp.now(),
+    alienUpdate = {
+      xp:           (alien.xp         ?? 0) + WIN_REWARDS.xp,
+      starCoins:    (alien.starCoins   ?? 0) + WIN_REWARDS.starCoins,
+      galacticGems: newGems,
     };
-
-    const battleRef = await addDoc(collection(db, "battles"), battleDoc);
-
-    // 8) Sestavíme aktualizovaný stav hráče pro UI (bez dalšího čtení z DB)
-    const updatedAlien = {...alien, ...alienUpdate};
-
-    return {
-        outcome: won ? "win" : "loss",
-        myScore: Math.round(myScore),
-        opponentScore: Math.round(opponentScore),
-        rewards,
-        battleId: battleRef.id,
-        updatedAlien,
-        opponent,
+    rewards = {
+      xp:           WIN_REWARDS.xp,
+      starCoins:    WIN_REWARDS.starCoins,
+      galacticGems: gemDrop ? WIN_REWARDS.gemAmount : 0,
     };
+  } else {
+    // Prohra: odečteme 1 energii (min 0)
+    const newEnergy = Math.max(0, energy - LOSS_ENERGY_PENALTY);
+    alienUpdate = { energy: newEnergy };
+    rewards     = { energy: -LOSS_ENERGY_PENALTY };
+  }
+
+  // 7) Zapíšeme odměny / penalizaci do aliens
+  await updateDoc(doc(db, "aliens", uid), alienUpdate);
+
+  // 8) Uložíme výsledek souboje do kolekce battles
+  const battleDoc = {
+    attackerId:   uid,
+    defenderId:   opponent.id,
+    attackerName: alien.name          ?? "?",
+    defenderName: opponent.data.name  ?? "?",
+    attackerLevel: alien.level        ?? 1,
+    defenderLevel: opponent.data.level ?? 1,
+    myScore:      Math.round(myScore),
+    opponentScore: Math.round(opponentScore),
+    result:       won ? "win" : "loss",
+    rewards,
+    createdAt:    Timestamp.now(),
+  };
+
+  const battleRef = await addDoc(collection(db, "battles"), battleDoc);
+
+  // 9) Sestavíme aktualizovaný stav hráče pro UI (bez dalšího čtení z DB)
+  const updatedAlien = { ...alien, ...alienUpdate };
+
+  return {
+    outcome:       won ? "win" : "loss",
+    myScore:       Math.round(myScore),
+    opponentScore: Math.round(opponentScore),
+    rewards,
+    battleId:      battleRef.id,
+    updatedAlien,
+    opponent,
+  };
 }
 
 // ─────────────────────────────────────────────
@@ -259,15 +272,15 @@ export async function executeBattle(uid, opponent) {
  * @returns {Promise<Array<{id: string, data: object}>>}
  */
 export async function fetchBattleHistory(uid, count = 10) {
-    const q = query(
-        collection(db, "battles"),
-        where("attackerId", "==", uid),
-        orderBy("createdAt", "desc"),
-        limit(count)
-    );
+  const q = query(
+    collection(db, "battles"),
+    where("attackerId", "==", uid),
+    orderBy("createdAt", "desc"),
+    limit(count)
+  );
 
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({id: d.id, data: d.data()}));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, data: d.data() }));
 }
 
 // ─────────────────────────────────────────────
@@ -290,13 +303,13 @@ export async function fetchBattleHistory(uid, count = 10) {
  * @param {Function}    onRefresh  – reload dat + překreslení dashboardu
  */
 export async function renderBattleScreen(container, alien, uid, onBack, onRefresh) {
-    container.innerHTML = _html_loading("Načítám arenu…");
+  container.innerHTML = _html_loading("Načítám arenu…");
 
-    // Zkontrolujeme blokující podmínky
-    const energy = alien.energy ?? 0;
-    const training = await isTrainingActive(uid);
+  // Zkontrolujeme blokující podmínky
+  const energy   = alien.energy ?? 0;
+  const training = await isTrainingActive(uid);
 
-    _renderIdle(container, alien, uid, energy, training, onBack, onRefresh);
+  _renderIdle(container, alien, uid, energy, training, onBack, onRefresh);
 }
 
 // ─────────────────────────────────────────────
@@ -307,14 +320,14 @@ export async function renderBattleScreen(container, alien, uid, onBack, onRefres
  * Stav A – klidový stav, hráč hledá soupeře.
  */
 function _renderIdle(container, alien, uid, energy, trainingActive, onBack, onRefresh) {
-    const blocked = energy <= 0 || trainingActive;
-    const blockMsg = trainingActive
-        ? "⚠️ Probíhá trénink — souboj není dostupný"
-        : energy <= 0
-            ? "⚡ Žádná energie — počkej na obnovu"
-            : "";
+  const blocked  = energy <= 0 || trainingActive;
+  const blockMsg = trainingActive
+    ? "⚠️ Probíhá trénink — souboj není dostupný"
+    : energy <= 0
+    ? "⚡ Žádná energie — počkej na obnovu"
+    : "";
 
-    container.innerHTML = `
+  container.innerHTML = `
     <div class="dash-header">
       <span class="logo-icon">⚔️</span>
       <h1>Bojová aréna</h1>
@@ -351,43 +364,43 @@ function _renderIdle(container, alien, uid, energy, trainingActive, onBack, onRe
     </div>
   `;
 
-    // Najít soupeře
-    document.getElementById("btn-find-opponent").addEventListener("click", async () => {
-        const btn = document.getElementById("btn-find-opponent");
-        btn.disabled = true;
-        btn.textContent = "Hledám…";
-        _setStatus("Prohledávám galaxii…");
+  // Najít soupeře
+  document.getElementById("btn-find-opponent").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-find-opponent");
+    btn.disabled = true;
+    btn.textContent = "Hledám…";
+    _setStatus("Prohledávám galaxii…");
 
-        try {
-            const opponent = await findOpponent(uid, alien.level ?? 1);
-            if (!opponent) {
-                _setStatus("❌ Žádný vhodný soupeř nenalezen. Zkus to znovu.");
-                btn.disabled = false;
-                btn.textContent = "🔍 Najít soupeře";
-                return;
-            }
-            _renderOpponentFound(container, alien, uid, opponent, energy, onBack, onRefresh);
-        } catch (err) {
-            console.error("[CosmicClash/battle] Chyba při hledání soupeře:", err);
-            _setStatus(`❌ ${err.message}`);
-            btn.disabled = false;
-            btn.textContent = "🔍 Najít soupeře";
-        }
-    });
+    try {
+      const opponent = await findOpponent(uid, alien.level ?? 1);
+      if (!opponent) {
+        _setStatus("❌ Žádný vhodný soupeř nenalezen. Zkus to znovu.");
+        btn.disabled = false;
+        btn.textContent = "🔍 Najít soupeře";
+        return;
+      }
+      _renderOpponentFound(container, alien, uid, opponent, energy, onBack, onRefresh);
+    } catch (err) {
+      console.error("[CosmicClash/battle] Chyba při hledání soupeře:", err);
+      _setStatus(`❌ ${err.message}`);
+      btn.disabled = false;
+      btn.textContent = "🔍 Najít soupeře";
+    }
+  });
 
-    // Historie
-    document.getElementById("btn-history").addEventListener("click", async () => {
-        _renderHistory(container, uid, alien, energy, trainingActive, onBack, onRefresh);
-    });
+  // Historie
+  document.getElementById("btn-history").addEventListener("click", async () => {
+    _renderHistory(container, uid, alien, energy, trainingActive, onBack, onRefresh);
+  });
 
-    _bindBackButton(container, onBack);
+  _bindBackButton(container, onBack);
 }
 
 /**
  * Stav B – soupeř nalezen, porovnání statistik.
  */
 function _renderOpponentFound(container, alien, uid, opponent, energy, onBack, onRefresh) {
-    container.innerHTML = `
+  container.innerHTML = `
     <div class="dash-header">
       <span class="logo-icon">⚔️</span>
       <h1>Soupeř nalezen!</h1>
@@ -417,44 +430,44 @@ function _renderOpponentFound(container, alien, uid, opponent, energy, onBack, o
     </div>
   `;
 
-    // Zahájit souboj
-    document.getElementById("btn-start-battle").addEventListener("click", async () => {
-        const btn = document.getElementById("btn-start-battle");
-        const btn2 = document.getElementById("btn-find-another");
-        btn.disabled = true;
-        btn2.disabled = true;
-        btn.textContent = "Probíhá souboj…";
-        _setStatus("Vyhodnocuji výsledek…");
+  // Zahájit souboj
+  document.getElementById("btn-start-battle").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-start-battle");
+    const btn2 = document.getElementById("btn-find-another");
+    btn.disabled = true;
+    btn2.disabled = true;
+    btn.textContent = "Probíhá souboj…";
+    _setStatus("Vyhodnocuji výsledek…");
 
-        try {
-            const result = await executeBattle(uid, opponent);
-            _renderResult(container, alien, uid, result, energy, onBack, onRefresh);
-        } catch (err) {
-            console.error("[CosmicClash/battle] Chyba při souboji:", err);
-            _setStatus(`❌ ${err.message}`);
-            btn.disabled = false;
-            btn2.disabled = false;
-            btn.textContent = "⚔️ Zahájit souboj!";
-        }
-    });
+    try {
+      const result = await executeBattle(uid, opponent);
+      _renderResult(container, alien, uid, result, energy, onBack, onRefresh);
+    } catch (err) {
+      console.error("[CosmicClash/battle] Chyba při souboji:", err);
+      _setStatus(`❌ ${err.message}`);
+      btn.disabled = false;
+      btn2.disabled = false;
+      btn.textContent = "⚔️ Zahájit souboj!";
+    }
+  });
 
-    // Najít jiného soupeře
-    document.getElementById("btn-find-another").addEventListener("click", async () => {
-        _renderIdle(container, alien, uid, energy, false, onBack, onRefresh);
-    });
+  // Najít jiného soupeře
+  document.getElementById("btn-find-another").addEventListener("click", async () => {
+    _renderIdle(container, alien, uid, energy, false, onBack, onRefresh);
+  });
 
-    _bindBackButton(container, onBack);
+  _bindBackButton(container, onBack);
 }
 
 /**
  * Stav C – výsledek souboje.
  */
 function _renderResult(container, alien, uid, result, prevEnergy, onBack, onRefresh) {
-    const won = result.outcome === "win";
-    const rewStr = _formatRewards(result.rewards, won);
-    const scoreDiff = result.myScore - result.opponentScore;
+  const won      = result.outcome === "win";
+  const rewStr   = _formatRewards(result.rewards, won);
+  const scoreDiff = result.myScore - result.opponentScore;
 
-    container.innerHTML = `
+  container.innerHTML = `
     <div class="dash-header">
       <span class="logo-icon">${won ? "🏆" : "💀"}</span>
       <h1>${won ? "Vítězství!" : "Prohra"}</h1>
@@ -496,44 +509,43 @@ function _renderResult(container, alien, uid, result, prevEnergy, onBack, onRefr
     </div>
   `;
 
-    const newEnergy = result.updatedAlien.energy ?? prevEnergy;
+  const newEnergy = result.updatedAlien.energy ?? prevEnergy;
 
-    document.getElementById("btn-fight-again").addEventListener("click", async () => {
-        // Použijeme aktualizovaná data hráče (po odečtení energie / připsání odměn)
-        const freshAlien = {...alien, ...result.updatedAlien};
-        const stillTraining = await isTrainingActive(uid);
-        _renderIdle(container, freshAlien, uid, newEnergy, stillTraining, onBack, onRefresh);
-    });
+  document.getElementById("btn-fight-again").addEventListener("click", async () => {
+    // Použijeme aktualizovaná data hráče (po odečtení energie / připsání odměn)
+    const freshAlien = { ...alien, ...result.updatedAlien };
+    const stillTraining = await isTrainingActive(uid);
+    _renderIdle(container, freshAlien, uid, newEnergy, stillTraining, onBack, onRefresh);
+  });
 
-    document.getElementById("btn-history").addEventListener("click", async () => {
-        const freshAlien = {...alien, ...result.updatedAlien};
-        const stillTraining = await isTrainingActive(uid);
-        _renderHistory(container, uid, freshAlien, newEnergy, stillTraining, onBack, onRefresh);
-    });
+  document.getElementById("btn-history").addEventListener("click", async () => {
+    const freshAlien = { ...alien, ...result.updatedAlien };
+    const stillTraining = await isTrainingActive(uid);
+    _renderHistory(container, uid, freshAlien, newEnergy, stillTraining, onBack, onRefresh);
+  });
 
-    // Refreshneme dashboard v pozadí (bez čekání), aby se odměny projevily
-    if (typeof onRefresh === "function") {
-        onRefresh().catch(() => {
-        });
-    }
+  // Refreshneme dashboard v pozadí (bez čekání), aby se odměny projevily
+  if (typeof onRefresh === "function") {
+    onRefresh().catch(() => {});
+  }
 
-    _bindBackButton(container, onBack);
+  _bindBackButton(container, onBack);
 }
 
 /**
  * Stav D – historie soubojů.
  */
 async function _renderHistory(container, uid, alien, energy, trainingActive, onBack, onRefresh) {
-    container.innerHTML = _html_loading("Načítám historii…");
+  container.innerHTML = _html_loading("Načítám historii…");
 
-    try {
-        const history = await fetchBattleHistory(uid, 10);
+  try {
+    const history = await fetchBattleHistory(uid, 10);
 
-        const rows = history.length === 0
-            ? `<div class="empty-history">Zatím žádné souboje. Čas vstoupit do arény!</div>`
-            : history.map((b) => _html_history_row(b.data)).join("");
+    const rows = history.length === 0
+      ? `<div class="empty-history">Zatím žádné souboje. Čas vstoupit do arény!</div>`
+      : history.map((b) => _html_history_row(b.data)).join("");
 
-        container.innerHTML = `
+    container.innerHTML = `
       <div class="dash-header">
         <span class="logo-icon">📜</span>
         <h1>Historie soubojů</h1>
@@ -554,15 +566,15 @@ async function _renderHistory(container, uid, alien, energy, trainingActive, onB
       </div>
     `;
 
-        document.getElementById("btn-go-battle").addEventListener("click", () => {
-            _renderIdle(container, alien, uid, energy, trainingActive, onBack, onRefresh);
-        });
+    document.getElementById("btn-go-battle").addEventListener("click", () => {
+      _renderIdle(container, alien, uid, energy, trainingActive, onBack, onRefresh);
+    });
 
-        _bindBackButton(container, onBack);
+    _bindBackButton(container, onBack);
 
-    } catch (err) {
-        console.error("[CosmicClash/battle] Chyba při načítání historie:", err);
-        container.innerHTML = `
+  } catch (err) {
+    console.error("[CosmicClash/battle] Chyba při načítání historie:", err);
+    container.innerHTML = `
       <div class="card">
         <p style="color:#fca5a5;font-size:14px;margin-bottom:14px;">
           Chyba při načítání: ${_esc(err.message)}
@@ -570,8 +582,8 @@ async function _renderHistory(container, uid, alien, energy, trainingActive, onB
         <button class="btn btn-secondary" id="btn-back-dashboard">← Zpět</button>
       </div>
     `;
-        _bindBackButton(container, onBack);
-    }
+    _bindBackButton(container, onBack);
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -582,11 +594,11 @@ async function _renderHistory(container, uid, alien, energy, trainingActive, onB
  * Karta bojovníka (útočník nebo obránce).
  */
 function _html_fighter_card(title, alien, side) {
-    const originLabel = alien.origin ?? alien.type ?? "Neznámý původ";
-    const hpPct = Math.min(Math.round(((alien.hp ?? 100) / 200) * 100), 100);
-    const staminaPct = Math.min(alien.stamina ?? 100, 100);
+  const originLabel = alien.origin ?? alien.type ?? "Neznámý původ";
+  const hpPct       = Math.min(Math.round(((alien.hp ?? 100) / 200) * 100), 100);
+  const staminaPct  = Math.min(alien.stamina ?? 100, 100);
 
-    return `
+  return `
     <div class="card fighter-card fighter-${side}">
       <p class="section-title">${title}</p>
       <div class="fighter-name">${_esc(alien.name ?? "?")}</div>
@@ -620,26 +632,26 @@ function _html_fighter_card(title, alien, side) {
  * Tabulka porovnání statistik.
  */
 function _html_stat_comparison(attacker, defender) {
-    const stats = [
-        {label: "Level", a: attacker.level ?? 1, d: defender.level ?? 1},
-        {label: "HP", a: attacker.hp ?? 100, d: defender.hp ?? 100},
-        {label: "DMG", a: attacker.dmg ?? 10, d: defender.dmg ?? 10},
-        {label: "Stamina", a: attacker.stamina ?? 100, d: defender.stamina ?? 100},
-    ];
+  const stats = [
+    { label: "Level",   a: attacker.level   ?? 1,   d: defender.level   ?? 1   },
+    { label: "HP",      a: attacker.hp      ?? 100, d: defender.hp      ?? 100 },
+    { label: "DMG",     a: attacker.dmg     ?? 10,  d: defender.dmg     ?? 10  },
+    { label: "Stamina", a: attacker.stamina ?? 100, d: defender.stamina ?? 100 },
+  ];
 
-    const rows = stats.map(({label, a, d}) => {
-        const aWin = a > d;
-        const dWin = d > a;
-        return `
+  const rows = stats.map(({ label, a, d }) => {
+    const aWin = a > d;
+    const dWin = d > a;
+    return `
       <div class="cmp-row">
         <span class="cmp-val ${aWin ? "cmp-win" : dWin ? "cmp-loss" : ""}">${a}</span>
         <span class="cmp-label">${label}</span>
         <span class="cmp-val ${dWin ? "cmp-win" : aWin ? "cmp-loss" : ""}">${d}</span>
       </div>
     `;
-    }).join("");
+  }).join("");
 
-    return `
+  return `
     <div class="card">
       <p class="section-title">Porovnání statistik</p>
       <div class="comparison-grid">${rows}</div>
@@ -652,15 +664,15 @@ function _html_stat_comparison(attacker, defender) {
  * Řádek v historii soubojů.
  */
 function _html_history_row(data) {
-    const won = data.result === "win";
-    const date = data.createdAt instanceof Timestamp
-        ? data.createdAt.toDate().toLocaleDateString("cs-CZ", {
-            day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
-        })
-        : "—";
-    const rewStr = _formatRewards(data.rewards, won);
+  const won      = data.result === "win";
+  const date     = data.createdAt instanceof Timestamp
+    ? data.createdAt.toDate().toLocaleDateString("cs-CZ", {
+        day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+      })
+    : "—";
+  const rewStr   = _formatRewards(data.rewards, won);
 
-    return `
+  return `
     <div class="history-row battle-history-row ${won ? "history-win" : "history-loss"}">
       <div class="history-icon">${won ? "🏆" : "💀"}</div>
       <div class="history-info">
@@ -678,20 +690,20 @@ function _html_history_row(data) {
 
 /** Formátuje odměny / penalizace do čitelného stringu. */
 function _formatRewards(rewards, won) {
-    if (!rewards) return "—";
-    const parts = [];
-    if (won) {
-        if (rewards.xp) parts.push(`+${rewards.xp} XP`);
-        if (rewards.starCoins) parts.push(`+${rewards.starCoins} ✦`);
-        if (rewards.galacticGems) parts.push(`+${rewards.galacticGems} 💎`);
-    } else {
-        if (rewards.energy != null) parts.push(`${rewards.energy} ⚡`);
-    }
-    return parts.join("  ·  ") || "—";
+  if (!rewards) return "—";
+  const parts = [];
+  if (won) {
+    if (rewards.xp)           parts.push(`+${rewards.xp} XP`);
+    if (rewards.starCoins)    parts.push(`+${rewards.starCoins} ✦`);
+    if (rewards.galacticGems) parts.push(`+${rewards.galacticGems} 💎`);
+  } else {
+    if (rewards.energy != null) parts.push(`${rewards.energy} ⚡`);
+  }
+  return parts.join("  ·  ") || "—";
 }
 
 function _html_loading(text) {
-    return `
+  return `
     <div class="loading-wrap">
       <div class="spinner"></div>
       <p class="loading-text">${_esc(text)}</p>
@@ -700,18 +712,18 @@ function _html_loading(text) {
 }
 
 function _setStatus(msg) {
-    const el = document.getElementById("battle-status");
-    if (el) el.textContent = msg;
+  const el = document.getElementById("battle-status");
+  if (el) el.textContent = msg;
 }
 
 function _bindBackButton(container, onBack) {
-    container.querySelector("#btn-back-dashboard")
-        ?.addEventListener("click", onBack);
+  container.querySelector("#btn-back-dashboard")
+    ?.addEventListener("click", onBack);
 }
 
 /** HTML-escape — ochrana proti XSS při vkládání dat z DB do innerHTML. */
 function _esc(str) {
-    return String(str ?? "")
-        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return String(str ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

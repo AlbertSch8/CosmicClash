@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <!--
-  UFO: Cosmic Clash — Dashboard
+  UFO: Cosmic Clash — Nastavení hráče
   Autor: Alexandre Basseville
-  Krok 2: Herní profil, energie s obnovou, UI rozcestník, příprava na vybavení
 -->
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cosmic Clash — Dashboard</title>
+  <title>Cosmic Clash — Nastavení</title>
+  <link rel="icon" type="image/png" href="/icons/favicon.png" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Syne:wght@300;400;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -629,26 +629,75 @@
       .lb-sub-stats { gap: 5px; }
     }
   </style>
+  <style>
+    /* ── Settings extra styles ── */
+    .field {
+      display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px;
+    }
+    .field label {
+      font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--glow); font-weight: 600;
+    }
+    .field input[type="text"] {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(123,47,255,.25);
+      border-radius: 9px; padding: 13px 16px;
+      color: var(--star); font-family: 'Syne', sans-serif;
+      font-size: 14px; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .field input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(123,47,255,.15);
+    }
+    .avatar-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 10px; margin-top: 4px;
+    }
+    .avatar-option {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 10px 6px; border-radius: 12px; cursor: pointer;
+      background: var(--section-bg); border: 2px solid transparent;
+      transition: border-color .2s, background .2s;
+    }
+    .avatar-option img {
+      width: 48px; height: 48px; object-fit: contain; border-radius: 6px;
+    }
+    .avatar-option span {
+      font-size: 10px; color: var(--text); text-align: center;
+    }
+    .avatar-option:hover {
+      border-color: rgba(123,47,255,.4);
+      background: rgba(123,47,255,.1);
+    }
+    .avatar-option.selected {
+      border-color: var(--accent);
+      background: rgba(123,47,255,.15);
+    }
+    .status-msg { font-size: 13px; min-height: 20px; text-align: center; margin-top: 8px; }
+    .status-msg.error   { color: #ff6b8a; }
+    .status-msg.success { color: var(--success); }
+    @media (max-width: 380px) {
+      .avatar-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+  </style>
 </head>
 <body>
-
-<!-- Vesmírné pozadí -->
 <div class="space-bg">
   <div class="nebula-blob"></div>
   <div class="nebula-blob"></div>
   <div class="nebula-blob"></div>
 </div>
 
-<!-- Hlavní obsah — vykresluje dashboard.js -->
 <div class="app-wrapper">
   <div id="root">
     <div class="loading-wrap">
       <div class="spinner"></div>
-      <p class="loading-text">Načítám pilota&hellip;</p>
+      <p class="loading-text">Načítám nastavení&hellip;</p>
     </div>
   </div>
 </div>
 
-<script type="module" src="/src/dashboard.js"></script>
+<script type="module" src="/src/settings.js"></script>
 </body>
 </html>
