@@ -2,7 +2,7 @@
 
 > Prohlížečová sci-fi hra pro více hráčů postavená na čistém JavaScriptu, Vite a Firebase.
 
-**Autor:** Alexandre Basseville
+**Autoři:** Tadeáš Zikl, Kryštof Málek a Alexandre Basseville
 
 ---
 
