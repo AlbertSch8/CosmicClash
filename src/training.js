@@ -1,6 +1,5 @@
 /**
  * UFO: Cosmic Clash — Tréninkový systém (Krok 3)
- * Autor: Alexandre Basseville
  *
  * Odpovědnosti tohoto modulu:
  *  1. Definice tréninkových režimů (Galaktická posilovna, Vesmírný běh)

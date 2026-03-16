@@ -1,15 +1,8 @@
-/**
- * UFO: Cosmic Clash — Nastavení hráče
- * Autor: Alexandre Basseville
- *
- * Funkcionalita:
- *  1. Auth guard — nepřihlášený → index.html
- *  2. Načtení aktuálního profilu z Firestore
- *  3. Formulář pro změnu jména ufouna
- *  4. Výběr avatara ze sady /images/*.png
- *  5. Uložení avatarUrl a name zpět do kolekce `aliens`
- */
+// Přidej tento řádek na samý začátek každého src/*.js souboru:
+import "./logger.js";
 
+// Volitelně, pro manuální logování zachycených chyb:
+import { logError } from "./logger.js";
 import { auth, db } from "./firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";

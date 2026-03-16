@@ -1,6 +1,5 @@
 /**
  * UFO: Cosmic Clash — Sdílené UI utility (Finální polish)
- * Autor: Alexandre Basseville
  *
  * Centrální modul pro:
  *  1. Blokování tlačítek během asynchronních operací (withButtonLock)

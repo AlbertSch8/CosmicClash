@@ -1,16 +1,10 @@
-/**
- * UFO: Cosmic Clash — Dashboard (Krok 5)
- * Autor: Alexandre Basseville
- *
- * Odpovědnosti:
- *  1. Auth guard — nepřihlášený → index.html
- *  2. Načtení profilu z Firestore + přepočet energie (anti-cheat)
- *  3. Asynchronní načtení vybavených itemů (equippedWeaponId, equippedArmorId)
- *     z kolekce `items` a přičtení jejich bonusů k základním statistikám
- *  4. Zobrazení finálních statistik (base + equipment bonusy) na dashboardu
- *  5. Rozcestník: Trénink ✅  Souboj ✅  Leaderboard ✅  Obchod/Vybavení
- *  6. Integrace training.js + battle.js + leaderboard.js
- */
+
+// Přidej tento řádek na samý začátek každého src/*.js souboru:
+import "./logger.js";
+
+// Volitelně, pro manuální logování zachycených chyb:
+import { logError } from "./logger.js";
+
 
 import { auth, db } from "./firebase.js";
 import { onAuthStateChanged, signOut } from "firebase/auth";

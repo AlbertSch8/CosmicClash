@@ -1,6 +1,5 @@
 /**
  * UFO: Cosmic Clash — Leaderboard (Krok 5)
- * Autor: Alexandre Basseville
  *
  * Odpovědnosti tohoto modulu:
  *  1. Načtení top hráčů z kolekce `aliens` seřazených dle galaxyTrophies DESC

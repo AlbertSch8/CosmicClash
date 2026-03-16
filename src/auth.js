@@ -1,18 +1,8 @@
-/**
- * UFO: Cosmic Clash — Autentizace a registrace (Krok 1, oprava)
- * Autor: Alexandre Basseville
- *
- * Klíčové opravy oproti původní verzi:
- *  1. onAuthStateChanged přesměrovává POUZE při přihlášení (login),
- *     NE během registrace — přesměrování po registraci řídí handleRegister()
- *     až po úspěšném zápisu obou dokumentů do Firestore.
- *  2. handleRegister() zapisuje dokumenty sekvenčně s await a teprve potom
- *     přesměruje — žádná race condition.
- *  3. Zápis do kolekce `users` (veřejný profil) + `aliens` (herní data)
- *     jsou oddělené operace, obě obalené v try/catch.
- *  4. Při selhání zápisu do DB se uživatel nikam nepřesměruje a dostane
- *     srozumitelnou chybovou hlášku.
- */
+// Přidej tento řádek na samý začátek každého src/*.js souboru:
+import "./logger.js";
+
+// Volitelně, pro manuální logování zachycených chyb:
+import { logError } from "./logger.js";
 
 import { auth, db } from "./firebase.js";
 import {

@@ -1,12 +1,9 @@
-/**
- * UFO: Cosmic Clash — Admin "God Mode" Panel
- * Autor: Alexandre Basseville
- *
- * Sekce:
- *  1. LOGIN      — heslo uložené v sessionStorage
- *  2. HRÁČI      — výpis aliens s live filtrací, +/- Star Coins & Galactic Gems
- *  3. VYBAVENÍ   — výpis items, editace dmgBonus/hpBonus/staminaBonus/priceCoins/priceGems
- */
+
+// Přidej tento řádek na samý začátek každého src/*.js souboru:
+import "./logger.js";
+
+// Volitelně, pro manuální logování zachycených chyb:
+import { logError } from "./logger.js";
 
 import { auth, db } from "./firebase.js";
 import {
