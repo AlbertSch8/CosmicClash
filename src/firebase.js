@@ -2,9 +2,10 @@
  * UFO: Cosmic Clash — Firebase inicializace
  *
  * Exportuje:
- *   auth      — Firebase Authentication
- *   db        — Firestore databáze
- *   analytics — Firebase Analytics (automaticky sleduje page_view a session)
+ *   auth           — Firebase Authentication
+ *   db             — Firestore databáze
+ *   analytics      — Firebase Analytics instance (nebo null)
+ *   analyticsReady — Promise<Analytics|null> — čekej na toto v logger.js
  */
 
 import { initializeApp } from "firebase/app";
@@ -27,17 +28,19 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db   = getFirestore(app);
 
-// Analytics je dostupná pouze v prostředí prohlížeče (ne SSR/Node).
-// isSupported() vrací Promise<boolean> — inicializujeme asynchronně,
-// aby případná nedostupnost (AdBlock, Safari ITP) nerozbila zbytek aplikace.
+// analytics — synchronní export (může být null těsně po startu)
 export let analytics = null;
 
-isSupported().then((supported) => {
-  if (supported) {
-    analytics = getAnalytics(app);
-  }
-}).catch(() => {
-  // Analytics blokovány (AdBlock apod.) — tiše ignorujeme
-});
+// analyticsReady — Promise která se resolvuje jakmile je Analytics připravena.
+// logger.js na toto čeká aby neodesílal eventy do null objektu.
+export const analyticsReady = isSupported()
+  .then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+      return analytics;
+    }
+    return null;
+  })
+  .catch(() => null); // AdBlock, Safari ITP — tiše ignorujeme
 
 export default app;

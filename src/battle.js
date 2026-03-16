@@ -8,6 +8,7 @@
  *  - hezčí battle preview a replay
  */
 
+import "./logger.js";
 import { db } from "./firebase.js";
 import {
   collection,

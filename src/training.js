@@ -11,6 +11,7 @@
  *  7. Renderování celé tréninkové obrazovky do předaného DOM elementu
  */
 
+import "./logger.js";
 import { db } from "./firebase.js";
 import {
   collection,
