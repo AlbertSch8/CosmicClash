@@ -15,6 +15,7 @@ import { renderLeaderboardScreen } from "./leaderboard.js";
 import { renderShopScreen } from "./shop.js";
 import { renderEquipmentScreen } from "./equipment.js";
 import { GameLogic, ENERGY_MAX } from "./logic/game-logic.js";
+import { LevelingLogic } from "./logic/leveling-logic.js";
 
 // ─────────────────────────────────────────────
 //  KONSTANTY
@@ -198,11 +199,25 @@ function renderDashboard(alien, user, equippedItems) {
     clearInterval(energyInterval);
   }
 
-  const stats = calculateFinalStats(alien, equippedItems);
-  const xpReq = (alien.level ?? 1) * 100;
-  const xpPct = Math.min(Math.round(((alien.xp ?? 0) / xpReq) * 100), 100);
+  // Zjistíme aktuální level a progres
+  const levelInfo = LevelingLogic.getLevelInfo(alien.xp);
 
-  const hpBase = 100 + ((alien.level ?? 1) - 1) * 10;
+  // Vytvoříme virtuálního ufouna, který má už zvednuté základní staty podle levelu
+  // (+15 HP a +3 DMG za každý level nad 1)
+  const leveledAlien = {
+    ...alien,
+    hp: 100 + ((levelInfo.level - 1) * 15),
+    dmg: 10 + ((levelInfo.level - 1) * 3)
+  };
+
+  // Vypočítáme finální staty (Základ + Level Bonus + Equipment Bonus)
+  const stats = calculateFinalStats(leveledAlien, equippedItems);
+
+  // Data pro progress bary
+  const xpReq = levelInfo.nextLevelXp;
+  const xpPct = levelInfo.progressPct;
+
+  const hpBase = leveledAlien.hp;
   const hpPct = hpBase > 0 ? Math.min(Math.round((stats.hp / hpBase) * 100), 100) : 0;
 
   const staminaBaseMax = alien.stamina ?? 100;
@@ -246,7 +261,7 @@ function renderDashboard(alien, user, equippedItems) {
       <p class="section-title">Herní profil</p>
       <div class="stat-row"><span class="stat-label">Jméno</span><span class="stat-value">${esc(alien.name)}</span></div>
       <div class="stat-row"><span class="stat-label">Původ / Typ</span><span class="stat-value">${esc(origin)}</span></div>
-      <div class="stat-row"><span class="stat-label">Level</span><span class="stat-value">${alien.level ?? 1}</span></div>
+      <div class="stat-row"><span class="stat-label">Level</span><span class="stat-value">${levelInfo.level}</span></div>
       <div class="stat-row"><span class="stat-label">Galaxy Trophies</span><span class="stat-value">🏆 ${Math.max(0, alien.galaxyTrophies ?? 0)}</span></div>
 
       <div class="bar-block">
