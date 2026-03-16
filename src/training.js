@@ -26,6 +26,7 @@ import {
   limit,
   Timestamp,
 } from "firebase/firestore";
+import { TrainingSessionLogic } from "./logic/training-session-logic.js";
 
 // ─────────────────────────────────────────────
 //  KONSTANTY A DEFINICE TRÉNINKOVÝCH REŽIMŮ
@@ -128,15 +129,7 @@ export async function fetchActiveSession(uid) {
   const latest = await fetchLatestSession(uid);
   if (!latest) return null;
 
-  const { data } = latest;
-  if (data.status !== "active") return null;
-
-  // Ověříme, zda endTime ještě neminulo (validace na straně klienta)
-  const endMs = data.endTime instanceof Timestamp
-    ? data.endTime.toMillis()
-    : data.endTime;
-
-  if (Date.now() >= endMs) {
+  if (!TrainingSessionLogic.isSessionActive(latest.data)) {
     // Session sice stále nese status "active", ale čas vypršel.
     // Necháme ji tak — označíme jako "done" až při vyzvednutí odměny.
     return null;
@@ -155,22 +148,7 @@ export async function fetchPendingRewardSession(uid) {
   const latest = await fetchLatestSession(uid);
   if (!latest) return null;
 
-  const { data } = latest;
-
-  // Případ A: Session je explicitně "done" a odměna nebyla vyzvednuta.
-  if (data.status === "done" && data.rewardsClaimed === false) {
-    return latest;
-  }
-
-  // Případ B: Session je stále "active", ale čas již vypršel (reload po uplynutí).
-  if (data.status === "active" && data.rewardsClaimed === false) {
-    const endMs = data.endTime instanceof Timestamp
-      ? data.endTime.toMillis()
-      : data.endTime;
-    if (Date.now() >= endMs) return latest;
-  }
-
-  return null;
+  return TrainingSessionLogic.hasPendingReward(latest.data) ? latest : null;
 }
 
 // ─────────────────────────────────────────────
@@ -279,12 +257,10 @@ export async function claimTrainingRewards(uid, sessionId) {
   }
 
   // 4) Ověříme, že čas opravdu vypršel (ochrana před předčasným claimem)
-  const endMs = session.endTime instanceof Timestamp
-    ? session.endTime.toMillis()
-    : session.endTime;
+  const endMs = TrainingSessionLogic.toMillis(session.endTime);
 
   if (Date.now() < endMs) {
-    const remaining = Math.ceil((endMs - Date.now()) / 1000);
+    const remaining = TrainingSessionLogic.remainingSeconds(endMs);
     throw new Error(`Trénink ještě neskončil. Zbývá ${remaining} sekund.`);
   }
 
@@ -298,22 +274,15 @@ export async function claimTrainingRewards(uid, sessionId) {
   if (!mode) throw new Error(`Neznámý typ tréninku v session: ${session.trainingType}`);
 
   // 7) Vypočítáme nové hodnoty (s ochranou stamina max=100)
-  const newXp         = (alien.xp         ?? 0)   + mode.rewards.xp;
-  const newStarCoins  = (alien.starCoins   ?? 0)   + mode.rewards.starCoins;
-  const newHp         = (alien.hp          ?? 100) + mode.statDeltas.hp;
-  const newDmg        = (alien.dmg         ?? 10)  + mode.statDeltas.dmg;
-  const newStamina    = Math.min(
-    (alien.stamina ?? 100) + mode.statDeltas.stamina,
-    100
-  );
+  const claimedStats = TrainingSessionLogic.computeClaimedStats(alien, mode);
 
   // 8) Zapíšeme odměny do aliens (atomicky)
   await updateDoc(alienRef(uid), {
-    xp:        newXp,
-    starCoins: newStarCoins,
-    hp:        newHp,
-    dmg:       newDmg,
-    stamina:   newStamina,
+    xp: claimedStats.xp,
+    starCoins: claimedStats.starCoins,
+    hp: claimedStats.hp,
+    dmg: claimedStats.dmg,
+    stamina: claimedStats.stamina,
   });
 
   // 9) Označíme session jako dokončenou a odměnu jako vyzdvihnutou
@@ -324,7 +293,7 @@ export async function claimTrainingRewards(uid, sessionId) {
 
   return {
     mode,
-    alien: { ...alien, xp: newXp, starCoins: newStarCoins, hp: newHp, dmg: newDmg, stamina: newStamina },
+    alien: { ...alien, ...claimedStats },
   };
 }
 
