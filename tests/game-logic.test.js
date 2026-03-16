@@ -26,4 +26,22 @@ describe("GameLogic class", () => {
       expect(stats).toEqual({ hp: 110, dmg: 11, stamina: 61 });
     });
   });
+
+  describe("computeEnergyState", () => {
+    it("keeps full energy unchanged", () => {
+      const result = GameLogic.computeEnergyState({ energy: 5 });
+
+      expect(result.newEnergy).toBe(5);
+      expect(result.changed).toBe(false);
+      expect(typeof result.updatedAt).toBe("number");
+    });
+
+    it("repairs broken profile when timestamp is missing", () => {
+      const result = GameLogic.computeEnergyState({ energy: 2 });
+
+      expect(result.newEnergy).toBe(5);
+      expect(result.changed).toBe(true);
+      expect(typeof result.updatedAt).toBe("number");
+    });
+  });
 });
