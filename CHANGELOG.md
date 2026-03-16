@@ -1,6 +1,10 @@
 # Changelog - UFO: Cosmic Clash
 
 Tento soubor eviduje průběžnou práci a dokončené úkoly jednotlivých členů týmu podle oficiálního zadání.
+## [2026-03-16]
+* **Alexandre Basseville**: Udělání loggeru a napojení na analytics.
+* **Albert Shürrer**: Udělání testů.
+
 
 ## [2026-03-15]
 * **Alexandre Basseville**: Dodělání 5. kroku, přidání stránky s nastavením uživatele a vytvoření administrátorského panelu.
