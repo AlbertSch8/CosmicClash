@@ -116,7 +116,7 @@ Největším prvkem na login stránce je karta s formulářem. Na dashboardu je 
 Firebase Hosting nastavuje výchozí cache hlavičky. Pro explicitní kontrolu je doporučeno přidat do `firebase.json` sekci `headers` s `Cache-Control: public, max-age=31536000, immutable` pro soubory s hashem v názvu.
 
 **⚠️ Cache je nastavena pro obrázky, CSS a JavaScript**
-Vite assets (JS/CSS s hashem v názvu) jsou automaticky cachováné prohlížečem. Explicitní `Cache-Control` hlavičky pro ikony a obrázky nejsou v `firebase.json` nakonfigurovány — Firebase používá výchozí hodnoty.
+Vite assets (JS/CSS s hashem v názvu jsou automaticky cachováné prohlížečem. Explicitní `Cache-Control` hlavičky pro ikony a obrázky nejsou v `firebase.json` nakonfigurov)ány — Firebase používá výchozí hodnoty.
 
 **✅ Tým ověřil funkčnost cache**
 Fungování cache bylo ověřeno v Chrome DevTools → Network záložce. Při opakovaném načtení stránky jsou JS/CSS soubory načítány z `disk cache`.
