@@ -8,16 +8,16 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 const AVATARS = [
-  { id: "grey",    label: "Grey",    src: "/images/grey.png" },
-  { id: "cyborg",  label: "Cyborg",  src: "/images/cyborg.png" },
-  { id: "aqua",    label: "Aqua",    src: "/images/aqua.png" },
-  { id: "beast",   label: "Beast",   src: "/images/beast.png" },
-  { id: "crystal", label: "Crystal", src: "/images/crystal.png" },
-  { id: "flora",   label: "Flora",   src: "/images/flora.png" },
-  { id: "insect",  label: "Insect",  src: "/images/insect.png" },
-  { id: "lizard",  label: "Lizard",  src: "/images/lizard.png" },
-  { id: "plasma",  label: "Plasma",  src: "/images/plasma.png" },
-  { id: "void",    label: "Void",    src: "/images/void.png" },
+  { id: "grey",    label: "Grey",    src: "/images/grey.webp" },
+  { id: "cyborg",  label: "Cyborg",  src: "/images/cyborg.webp" },
+  { id: "aqua",    label: "Aqua",    src: "/images/aqua.webp" },
+  { id: "beast",   label: "Beast",   src: "/images/beast.webp" },
+  { id: "crystal", label: "Crystal", src: "/images/crystal.webp" },
+  { id: "flora",   label: "Flora",   src: "/images/flora.webp" },
+  { id: "insect",  label: "Insect",  src: "/images/insect.webp" },
+  { id: "lizard",  label: "Lizard",  src: "/images/lizard.webp" },
+  { id: "plasma",  label: "Plasma",  src: "/images/plasma.webp" },
+  { id: "void",    label: "Void",    src: "/images/void.webp" },
 ];
 
 function esc(str) {
@@ -31,9 +31,9 @@ function render(root, alien, uid) {
 
   root.innerHTML = `
     <div class="dash-header">
-      <img src="/icons/ufo.png" alt="UFO" style="width:52px;height:52px;object-fit:contain;display:block;margin:0 auto 8px;" />
+      <img src="/icons/ufo.webp" alt="UFO" style="width:52px;height:52px;object-fit:contain;display:block;margin:0 auto 8px;" />
       <h1>Nastavení pilota</h1>
-      <p class="subtitle">Upravit profil ufouna</p>
+      <p class="subtitle">Upravit profil ufou na</p>
     </div>
 
     <div class="card">

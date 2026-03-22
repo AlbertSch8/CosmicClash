@@ -1021,7 +1021,7 @@ function _htmlFighterCard(title, alien, equippedItems = null, side = "attacker",
           src="${_escAttr(avatar)}"
           alt="avatar"
           style="width:68px;height:68px;border-radius:999px;object-fit:cover;border:2px solid rgba(255,255,255,.12);"
-          onerror="this.onerror=null;this.src='/icons/ufo.png';"
+          onerror="this.onerror=null;this.src='/icons/ufo.webp';"
         />
         <div style="min-width:0;">
           <div style="font-size:12px;color:#a78bfa;text-transform:uppercase;letter-spacing:.08em;">${_esc(title)}</div>
@@ -1066,7 +1066,7 @@ function _htmlReplayCard(title, alien, state, side) {
             src="${_escAttr(avatar)}"
             alt="avatar"
             style="width:68px;height:68px;border-radius:999px;object-fit:cover;border:2px solid rgba(255,255,255,.12);"
-            onerror="this.onerror=null;this.src='/icons/ufo.png';"
+            onerror="this.onerror=null;this.src='/icons/ufo.webp';"
           />
           <div style="min-width:0;">
             <div style="font-size:12px;color:#a78bfa;text-transform:uppercase;letter-spacing:.08em;">${_esc(title)}</div>
@@ -1182,7 +1182,7 @@ function getAvatarUrl(alien) {
     alien.photoUrl ||
     alien.imageUrl ||
     alien.img ||
-    "/icons/ufo.png"
+    "/icons/ufo.webp"
   );
 }
 

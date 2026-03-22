@@ -56,8 +56,8 @@ CosmicClash/
 │   ├── settings.js        # Nastavení profilu (jméno, avatar)
 │   ├── admin.js           # Admin "God Mode" panel
 │   └── ui-utils.js        # Sdílené UI utility (toasty, button lock, esc)
-├── icons/                 # Herní ikony (PNG)
-├── images/                # Avatary ufonů (PNG)
+├── icons/                 # Herní ikony (webp)
+├── images/                # Avatary ufonů (webp)
 ├── index.html             # Login / registrace
 ├── dashboard.html         # Hlavní herní stránka
 ├── settings.html          # Nastavení hráče
@@ -165,7 +165,7 @@ Herní profil každého hráče.
 | `galacticGems` | number | Prémiová měna |
 | `equippedWeaponId` | string? | ID nasazené zbraně z kolekce `items` |
 | `equippedArmorId` | string? | ID nasazeného brnění z kolekce `items` |
-| `avatarUrl` | string? | Cesta k avataru (např. `/images/grey.png`) |
+| `avatarUrl` | string? | Cesta k avataru (např. `/images/grey.webp`) |
 | `createdAt` | Timestamp | Datum registrace |
 
 ### Kolekce `trainingSessions`

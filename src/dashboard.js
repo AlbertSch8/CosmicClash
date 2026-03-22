@@ -243,7 +243,7 @@ function renderDashboard(alien, user, equippedItems) {
       alien.photoUrl ||
       alien.imageUrl ||
       alien.img ||
-      "/icons/ufo.png";
+      "/icons/ufo.webp";
 
   root.innerHTML = `
   <div class="dash-header">
@@ -251,7 +251,7 @@ function renderDashboard(alien, user, equippedItems) {
       src="${esc(avatarUrl)}"
       alt="Avatar ufouna"
       class="dash-logo-img"
-      onerror="this.onerror=null;this.src='/icons/ufo.png';"
+      onerror="this.onerror=null;this.src='/icons/ufo.webp';"
     />
     <h1>Velitel ${esc(alien.name)}</h1>
     <p class="subtitle">${esc(origin)}</p>
@@ -307,7 +307,7 @@ function renderDashboard(alien, user, equippedItems) {
       <div class="stat-row">
         <span class="stat-label">DMG</span>
         <span class="stat-value">
-          <img src="/icons/fight.png" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" alt="DMG" />
+          <img src="/icons/fight.webp" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" alt="DMG" />
           ${stats.dmg}
           ${equippedItems?.bonusDmg ? `<span class="bonus-tag">+${equippedItems.bonusDmg}</span>` : ""}
         </span>
@@ -319,7 +319,7 @@ function renderDashboard(alien, user, equippedItems) {
 
       <div class="stat-row">
         <span class="stat-label">
-          <img src="/icons/gun.png" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" alt="" />
+          <img src="/icons/gun.webp" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" alt="" />
           Zbraň
         </span>
         <span class="stat-value ${equippedItems?.weapon ? "equip-active" : "equip-none"}">${esc(weaponLabel)}</span>
@@ -327,7 +327,7 @@ function renderDashboard(alien, user, equippedItems) {
 
       <div class="stat-row">
         <span class="stat-label">
-          <img src="/icons/armor.png" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" alt="" />
+          <img src="/icons/armor.webp" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" alt="" />
           Brnění
         </span>
         <span class="stat-value ${equippedItems?.armor ? "equip-active" : "equip-none"}">${esc(armorLabel)}</span>
@@ -346,12 +346,12 @@ function renderDashboard(alien, user, equippedItems) {
       <p class="section-title">Pokladnice</p>
       <div class="currency-row">
         <div class="currency-chip">
-          <span class="chip-icon"><img src="/icons/star_coin.png" class="chip-img" alt="SC" /></span>
+          <span class="chip-icon"><img src="/icons/star_coin.webp" class="chip-img" alt="SC" /></span>
           <span class="chip-label">Star Coins</span>
           <span class="chip-value">${alien.starCoins ?? 0}</span>
         </div>
         <div class="currency-chip">
-          <span class="chip-icon"><img src="/icons/galactic_crystal.png" class="chip-img" alt="GG" /></span>
+          <span class="chip-icon"><img src="/icons/galactic_crystal.webp" class="chip-img" alt="GG" /></span>
           <span class="chip-label">Galactic Gems</span>
           <span class="chip-value">${alien.galacticGems ?? 0}</span>
         </div>
@@ -362,27 +362,27 @@ function renderDashboard(alien, user, equippedItems) {
       <p class="section-title">Velitelské centrum</p>
       <div class="nav-grid">
         <button class="nav-btn" id="nav-training">
-          <span class="nav-icon"><img src="/icons/training.png" class="nav-img" alt="Trénink" /></span>
+          <span class="nav-icon"><img src="/icons/training.webp" class="nav-img" alt="Trénink" /></span>
           <span>Trénink</span>
         </button>
 
         <button class="nav-btn" id="nav-battle">
-          <span class="nav-icon"><img src="/icons/fight.png" class="nav-img" alt="Souboj" /></span>
+          <span class="nav-icon"><img src="/icons/fight.webp" class="nav-img" alt="Souboj" /></span>
           <span>Souboj</span>
         </button>
 
         <button class="nav-btn" id="nav-shop">
-          <span class="nav-icon"><img src="/icons/shop.png" class="nav-img" alt="Obchod" /></span>
+          <span class="nav-icon"><img src="/icons/shop.webp" class="nav-img" alt="Obchod" /></span>
           <span>Obchod</span>
         </button>
 
         <button class="nav-btn" id="nav-equipment">
-          <span class="nav-icon"><img src="/icons/inventory.png" class="nav-img" alt="Vybavení" /></span>
+          <span class="nav-icon"><img src="/icons/inventory.webp" class="nav-img" alt="Vybavení" /></span>
           <span>Vybavení</span>
         </button>
 
         <button class="nav-btn" id="nav-leaderboard" style="grid-column:span 2">
-          <span class="nav-icon"><img src="/icons/leaderboard.png" class="nav-img" alt="Leaderboard" /></span>
+          <span class="nav-icon"><img src="/icons/leaderboard.webp" class="nav-img" alt="Leaderboard" /></span>
           <span>Leaderboard</span>
         </button>
       </div>
@@ -395,7 +395,7 @@ function renderDashboard(alien, user, equippedItems) {
   src="${esc(avatarUrl)}"
   style="width:36px;height:36px;border-radius:50%;object-fit:cover;"
   alt="Nastavení"
-  onerror="this.onerror=null;this.src='/icons/ufo.png';"
+  onerror="this.onerror=null;this.src='/icons/ufo.webp';"
 />        <span style="font-size:10px;display:block;margin-top:3px;letter-spacing:.08em;">Nastavení</span>
       </button>
     </div>
